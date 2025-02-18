@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
     int block_size = 16;
 
 
-    bool gemv = false;
+    bool gemv = false ;
     bool gemm=false;
     bool mem_alloc=false;
     bool reduction=false;
