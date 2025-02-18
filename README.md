@@ -1,4 +1,4 @@
-# sycl-microbench
+# microSYCL
 
 This is a micro-benchmark for testing the overhead of SYCL features, the following features are tested in this benchmark 
 

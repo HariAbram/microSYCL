@@ -12,6 +12,10 @@
 #define TYPE double
 #endif
 
+#ifndef OPT_BLOCK_SIZE
+#define OPT_BLOCK_SIZE 32
+#endif
+
 #include "../include/timer.hpp"
 
 using namespace cl;
@@ -485,6 +489,81 @@ void gemm_ndrange_buff_acc(sycl::queue &Q, int size, int block_size)
     free(m3);
 
 }
+
+//optimized gemm
+void gemm_opt_ndrange_usm(sycl::queue &Q, int size, int block_size){
+     auto N = static_cast<size_t>(size);
+
+    auto N_b = static_cast<size_t>(block_size);
+    sycl::range<1> local{N_b};
+
+    timer time;
+
+    TYPE * __restrict__ m1 = (TYPE *)malloc(size*size*sizeof(TYPE));
+    TYPE * __restrict__ m2 = (TYPE *)malloc(size*size*sizeof(TYPE));
+    TYPE * __restrict__ m3 = (TYPE *)malloc(size*size*sizeof(TYPE));
+
+    std::fill(m1,m1+size*size,1);
+    std::fill(m2,m2+size*size,1);
+    std::fill(m3,m3+size*size,0.0);
+
+    sycl::buffer<TYPE,1> m1_buff(m1,size*size);
+    sycl::buffer<TYPE,1> m2_buff(m2,size*size);
+    sycl::buffer<TYPE,1> m3_buff(m3,size*size);
+
+    sycl::range<2> global1 {N,N};
+    sycl::range<2> local1{N_b,N_b};
+
+    time.start_timer();
+
+ 
+    Q.submit([&](sycl::handler& cgh){
+        auto m1_acc = m1_buff.get_access<sycl::access::mode::read>(cgh);
+        auto m2_acc = m2_buff.get_access<sycl::access::mode::read>(cgh);
+        auto m3_acc = m3_buff.get_access<sycl::access::mode::read_write>(cgh);
+
+        cgh.parallel_for< >(sycl::nd_range<2>(global1,local1), [=](sycl::nd_item<2>it){
+
+            auto i = it.get_global_id(0);
+            auto j = it.get_global_id(1);
+
+            TYPE temp = 0.0;
+
+            for (size_t k = 0; k < N; k+=OPT_BLOCK_SIZE)
+            {
+                for (size_t kk = 0; kk < OPT_BLOCK_SIZE; kk++)
+                {
+                    temp += m2_acc[i*N+kk]*m1_acc[kk*N+j];
+                }
+                
+                
+            }
+
+            m3_acc[i*N+j] = temp;
+
+        });
+
+    });
+    Q.wait();
+
+    time.end_timer();
+
+    auto m3_r = m3_buff.get_host_access();
+
+    if (m3_r[0] != size)
+    {
+        std::cout << "Verification Failed" << std::endl;
+    }
+    
+
+    auto kernel_offload_time = time.duration();
+    std::cout << "Time taken : mat mul with nd_range( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
+
+    free(m1);
+    free(m2);
+    free(m3);
+}
+
 
 ////////////////////////////////////////////////////////// outer-product
 

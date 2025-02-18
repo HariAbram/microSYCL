@@ -28,6 +28,7 @@ static struct option long_options[] = {
   {"size", 1, NULL, 's'},
   {"gemv", 0, NULL, 'v'},
   {"gemm", 0, NULL, 'm'},
+  {"gemm-opt", 0, NULL, 'G'},
   {"mem-alloc", 0, NULL, 'a'},
   {"reduction", 0, NULL, 'r'},
   {"range", 0, NULL, 'e'},
@@ -54,6 +55,7 @@ int main(int argc, char* argv[]) {
 
     bool gemv = false ;
     bool gemm=false;
+    bool gemm_opt=false;
     bool mem_alloc=false;
     bool reduction=false;
     bool range=false;
@@ -70,7 +72,7 @@ int main(int argc, char* argv[]) {
 
     int iter = 10;
 
-    while ((opt = getopt_long(argc, argv, ":s:b:v:i:h:m:r:a:e:n:w:I:p:d:T:O:C:", 
+    while ((opt = getopt_long(argc, argv, ":s:b:v:i:h:m:r:a:e:n:w:I:p:d:T:O:C:G:", 
           long_options, &option_index)) != -1 ) {
     switch(opt){
       case 's':
@@ -105,6 +107,9 @@ int main(int argc, char* argv[]) {
         break;
       case 'O':
         out_pro = true;
+        break;
+      case 'G':
+        gemm_opt = true;
         break;
       case 'C':
         cro_pro = true;
@@ -146,7 +151,8 @@ int main(int argc, char* argv[]) {
     {
 
       std::cout<<"Usage: \n"<< argv[0]<< " [-s size |-b blocksize <optional> |-I No. iterations | --print-system\n"
-                                        " --gemm : to run matrix multiplication \n" 
+                                        " --gemm : to run matrix matrix multiplication \n" 
+                                        " --gemm-opt : to optimized matrix matrix multiplication \n"
                                         " --gemv : to run matrix vector multiplication \n"
                                         " --triad   : to run a triad operation \n"
                                         " --outer-product   : to run a outer product operation \n"
@@ -163,8 +169,12 @@ int main(int argc, char* argv[]) {
       
       exit(EXIT_FAILURE);
     }
-    
+
+#if defined(USE_GPU)
+    sycl::queue Q[sycl::gpu_selector()]
+#else
     sycl::queue Q{};
+#endif
 
     LIKWID_MARKER_INIT;
 
@@ -194,6 +204,11 @@ int main(int argc, char* argv[]) {
       }
 
     }
+    else if (gemm_opt)
+    {
+      gemm_opt_ndrange_usm(Q, n_row, block_size);
+    }
+    
     else if (gemv)
     {
       if (vec_no==1)
