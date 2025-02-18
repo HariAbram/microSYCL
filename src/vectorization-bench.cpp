@@ -649,9 +649,9 @@ void gemm_opt_ndrange_usm(sycl::queue &Q, int size, int block_size){
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : gemm with nd_range( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
 
-    free(m1);
-    free(m2);
-    free(m3);
+    free(m1,Q);
+    free(m2,Q);
+    free(m3,Q);
 }
 
 
