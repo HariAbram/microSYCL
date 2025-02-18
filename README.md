@@ -24,8 +24,8 @@ For optimal performance set `OMP_PROC_BIND` environment variable is set to true.
 ```
 ./binary [-s size |-b blocksize <optional> |-I No. iterations | --print-system
 			--gemm 				: to run matrix matrix multiplication 
-        	--gemm-opt 			: to optimized matrix matrix multiplication 
-        	--gemv 				: to run matrix vector multiplication 
+			--gemm-opt 			: to optimized matrix matrix multiplication 
+			--gemv 				: to run matrix vector multiplication 
 			--triad				: to run a triad benchmark 
 			--outer-product		: to run an outer product benchmark
 			--cross-product		: to run an cross product benchmark
