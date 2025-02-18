@@ -26,8 +26,8 @@ static struct option long_options[] = {
   /* name, has_arg, flag, val */
   {"block size", 1, NULL, 'b'},
   {"size", 1, NULL, 's'},
-  {"mat-vec", 0, NULL, 'v'},
-  {"mat-mul", 0, NULL, 'm'},
+  {"gemv", 0, NULL, 'v'},
+  {"gemm", 0, NULL, 'm'},
   {"mem-alloc", 0, NULL, 'a'},
   {"reduction", 0, NULL, 'r'},
   {"range", 0, NULL, 'e'},
@@ -52,8 +52,8 @@ int main(int argc, char* argv[]) {
     int block_size = 16;
 
 
-    bool mat_vec = false;
-    bool mat_mul=false;
+    bool gemv = false;
+    bool gemm=false;
     bool mem_alloc=false;
     bool reduction=false;
     bool range=false;
@@ -80,10 +80,10 @@ int main(int argc, char* argv[]) {
         block_size = atoi(optarg);
         break;
       case 'v':
-        mat_vec = true;
+        gemv = true;
         break;
       case 'm':
-        mat_mul = true;
+        gemm = true;
         break;
       case 'r':
         reduction = true;
@@ -146,8 +146,8 @@ int main(int argc, char* argv[]) {
     {
 
       std::cout<<"Usage: \n"<< argv[0]<< " [-s size |-b blocksize <optional> |-I No. iterations | --print-system\n"
-                                        " --mat-mul : to run matrix multiplication \n" 
-                                        " --mat-vec : to run matrix vector multiplication \n"
+                                        " --gemm : to run matrix multiplication \n" 
+                                        " --gemv : to run matrix vector multiplication \n"
                                         " --triad   : to run a triad operation \n"
                                         " --outer-product   : to run a outer product operation \n"
                                         " --mem-alloc : to alloc memory using SYCL and standard malloc \n"
@@ -174,43 +174,43 @@ int main(int argc, char* argv[]) {
       std::cout << Q.get_device().get_info<sycl::info::device::name>()<<"\n"<<std::endl;
     }
 
-    if (mat_mul)
+    if (gemm)
     {
       if (vec_no==1)
       {
-        mat_mul_range_usm(Q, n_row);
+        gemm_range_usm(Q, n_row);
       }
       else if (vec_no == 2)
       {
-        mat_mul_range_buff_acc(Q, n_row);
+        gemm_range_buff_acc(Q, n_row);
       }
       else if (vec_no == 3)
       {
-        mat_mul_ndrange_usm(Q, n_row, block_size);
+        gemm_ndrange_usm(Q, n_row, block_size);
       }
       else if (vec_no == 4)
       {
-        mat_mul_ndrange_buff_acc(Q, n_row, block_size);
+        gemm_ndrange_buff_acc(Q, n_row, block_size);
       }
 
     }
-    else if (mat_vec)
+    else if (gemv)
     {
       if (vec_no==1)
       {
-        mat_vec_range_usm(Q, n_row);
+        gemv_range_usm(Q, n_row);
       }
       else if (vec_no == 2)
       {
-        mat_vec_range_buff_acc(Q, n_row);
+        gemv_range_buff_acc(Q, n_row);
       }
       else if (vec_no == 3)
       {
-        mat_vec_ndrange_usm(Q, n_row, block_size);
+        gemv_ndrange_usm(Q, n_row, block_size);
       }
       else if (vec_no == 4)
       {
-        mat_vec_ndrange_buff_acc(Q, n_row, block_size);
+        gemv_ndrange_buff_acc(Q, n_row, block_size);
       }
     }
     else if (tri)

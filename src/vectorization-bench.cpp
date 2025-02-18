@@ -44,7 +44,7 @@ bool verification (TYPE *m1, TYPE *m2 , TYPE *m3, int size)
 ////////////////////////////////////////////////////////// mat-vec
 
 
-void mat_vec_range_usm(sycl::queue &Q, int size)
+void gemv_range_usm(sycl::queue &Q, int size)
 {
     timer time;
 
@@ -88,7 +88,7 @@ void mat_vec_range_usm(sycl::queue &Q, int size)
 }
 
 
-void mat_vec_range_buff_acc(sycl::queue &Q, int size)
+void gemv_range_buff_acc(sycl::queue &Q, int size)
 {
     timer time;
 
@@ -138,7 +138,7 @@ void mat_vec_range_buff_acc(sycl::queue &Q, int size)
 
 }
 
-void mat_vec_ndrange_usm(sycl::queue &Q, int size, int block_size)
+void gemv_ndrange_usm(sycl::queue &Q, int size, int block_size)
 {
     timer time;
 
@@ -185,7 +185,7 @@ void mat_vec_ndrange_usm(sycl::queue &Q, int size, int block_size)
 
 }
 
-void mat_vec_ndrange_buff_acc(sycl::queue &Q, int size, int block_size)
+void gemv_ndrange_buff_acc(sycl::queue &Q, int size, int block_size)
 {
     timer time;
 
@@ -239,7 +239,7 @@ void mat_vec_ndrange_buff_acc(sycl::queue &Q, int size, int block_size)
 
 ////////////////////////////////////////////////////////// mat-mul
 
-void mat_mul_range_usm(sycl::queue &Q, int size)
+void gemm_range_usm(sycl::queue &Q, int size)
 {
     timer time;
 
@@ -291,7 +291,7 @@ void mat_mul_range_usm(sycl::queue &Q, int size)
     sycl::free(m3,Q);
 }
 
-void mat_mul_range_buff_acc(sycl::queue &Q, int size)
+void gemm_range_buff_acc(sycl::queue &Q, int size)
 {
 
     auto N = static_cast<size_t>(size);
@@ -356,7 +356,7 @@ void mat_mul_range_buff_acc(sycl::queue &Q, int size)
     free(m3);
 }
 
-void mat_mul_ndrange_usm(sycl::queue &Q, int size, int block_size)
+void gemm_ndrange_usm(sycl::queue &Q, int size, int block_size)
 {
 
     auto N = static_cast<size_t>(size);
@@ -415,7 +415,7 @@ void mat_mul_ndrange_usm(sycl::queue &Q, int size, int block_size)
     sycl::free(m3,Q);
 }
 
-void mat_mul_ndrange_buff_acc(sycl::queue &Q, int size, int block_size)
+void gemm_ndrange_buff_acc(sycl::queue &Q, int size, int block_size)
 {
 
     auto N = static_cast<size_t>(size);
