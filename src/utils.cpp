@@ -4,7 +4,7 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #include <getopt.h>
 #include <assert.h>
 #include <sys/time.h>
@@ -12,12 +12,31 @@
 #include <algorithm>
 #include <string>
 #include <iomanip>
+#include <CL/sycl.hpp>
+//using namespace cl;
 
 #ifndef TYPE
 #define TYPE double
 #endif
 
 #include "../include/timer.hpp"
+
+static unsigned long x=123456789, y=362436069, z=521288629;
+
+unsigned long xorshf96(void) {          //period 2^96-1
+unsigned long t;
+    x ^= x << 16;
+    x ^= x >> 5;
+    x ^= x << 1;
+
+   t = x;
+   x = y;
+   y = z;
+   z = t ^ x ^ y;
+
+  return z;
+}
+
 
 void print_results(double *timings, int iter, int size, std::string benchmark, int dim, int bench)
 {
@@ -137,6 +156,35 @@ void delay_time(int size)
     std::cout << "time taken by each thread "<< kernel_offload_time << " seconds\n" << std::endl;
 
 }
+
+/*sparse utilities*/
+
+void init_sparse_arrays(TYPE *m, int size, int sparsity){
+  int i,j;
+
+  time_t t;
+
+  srand((unsigned) time(&t));
+  int a = sparsity;
+
+  for (i=0; i < size; i++) {
+    for (j=i; j < size; j++) {
+      if (xorshf96()%a == 0)
+      {
+        m[i*size+j] = 1 ;
+        m[j*size+i] = 1 ;
+      }
+      else
+      {
+        m[i*size+j] = 0;
+        m[j*size+i] = 0;
+      }
+      
+    }
+  }
+
+}
+
 
 
 

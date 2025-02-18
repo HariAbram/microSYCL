@@ -20,8 +20,8 @@ else
 endif
 
 OPTIMIZE  = yes
-DEBUG     = no
-LIKWID    = yes
+DEBUG     = yes
+LIKWID    = no
 
 LIKWID_LIB = /opt/likwid/lib/ 
 LIKWID_INCLUDE=/opt/likwid/include/

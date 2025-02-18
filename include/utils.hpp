@@ -4,7 +4,7 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #include <getopt.h>
 #include <assert.h>
 #include <sys/time.h>
@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <string>
 #include <iomanip>
+
+//using namespace cl;
 
 #ifdef LIKWID_PERFMON
 #include <likwid-marker.h>
@@ -34,5 +36,9 @@
 void print_results(double *timings, int iter, int size, std::string benchmark, int dim, int bench);
 
 void delay_time(int size);
+
+/*sparse matrix utilites*/
+void init_sparse_arrays(TYPE *m, int size, int sparsity);
+unsigned long xorshf96(void);
 
 #endif

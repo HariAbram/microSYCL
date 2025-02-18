@@ -1,7 +1,7 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #include <getopt.h>
 #include <assert.h>
 #include <sys/time.h>
@@ -19,7 +19,7 @@
 #include "../include/utils.hpp"
 
 
-using namespace cl;
+//using namespace cl;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 #include <getopt.h>
 #include <assert.h>
 #include <sys/time.h>
@@ -20,7 +20,7 @@
 #include "../include/micro-bench-omp.hpp"
 #include "../include/utils.hpp"
 
-using namespace cl;
+//using namespace cl;
 
 static struct option long_options[] = {
   /* name, has_arg, flag, val */
@@ -42,6 +42,7 @@ static struct option long_options[] = {
   {"triad", 0, NULL, 'T'},
   {"outer-product", 0, NULL, 'O'},
   {"cross-product", 0, NULL, 'C'},
+  {"spmv", 0, NULL, 'S'},
   {0,0,0,0}
 };
 
@@ -67,12 +68,13 @@ int main(int argc, char* argv[]) {
     bool tri = false;
     bool out_pro = false;
     bool cro_pro = false;
+    bool spmv = false;
 
     int vec_no = 1;
 
     int iter = 10;
 
-    while ((opt = getopt_long(argc, argv, ":s:b:v:i:h:m:r:a:e:n:w:I:p:d:T:O:C:G:", 
+    while ((opt = getopt_long(argc, argv, ":s:b:v:i:h:m:r:a:e:n:w:I:p:d:T:O:C:G:S:", 
           long_options, &option_index)) != -1 ) {
     switch(opt){
       case 's':
@@ -114,6 +116,9 @@ int main(int argc, char* argv[]) {
       case 'C':
         cro_pro = true;
         break;
+      case 'S':
+        spmv = true;
+        break;
       case 'p':
         print_system = true;
         break;
@@ -151,16 +156,18 @@ int main(int argc, char* argv[]) {
     {
 
       std::cout<<"Usage: \n"<< argv[0]<< " [-s size |-b blocksize <optional> |-I No. iterations | --print-system\n"
-                                        " --gemm : to run matrix matrix multiplication \n" 
-                                        " --gemm-opt : to optimized matrix matrix multiplication \n"
-                                        " --gemv : to run matrix vector multiplication \n"
-                                        " --triad   : to run a triad operation \n"
+                                        " --gemm            : to run matrix matrix multiplication \n" 
+                                        " --gemm-opt        : to optimized matrix matrix multiplication \n"
+                                        " --gemv            : to run matrix vector multiplication \n"
+                                        " --triad           : to run a triad operation \n"
                                         " --outer-product   : to run a outer product operation \n"
-                                        " --mem-alloc : to alloc memory using SYCL and standard malloc \n"
-                                        " --reduction : to test reduction using atomics and sycl reduction construct\n"
-                                        " --range : to test sycl range construct\n"
-                                        " --ndrange : to test sycl nd_range construct\n"
-                                        " --barrier : to test sycl barrier construct\n"
+                                        " --spmv            : execute spmv kernel\n"
+                                        "-------micro-benchmarks--------\n"
+                                        " --mem-alloc       : to alloc memory using SYCL and standard malloc \n"
+                                        " --reduction       : to test reduction using atomics and sycl reduction construct\n"
+                                        " --range           : to test sycl range construct\n"
+                                        " --ndrange         : to test sycl nd_range construct\n"
+                                        " --barrier         : to test sycl barrier construct\n"
                                         " -i : for different routines in vectorization benchmark (default:1)\n"
                                         "       1 - range with USM\n"
                                         "       2 - range with Buffer and Accessors\n"
@@ -240,6 +247,15 @@ int main(int argc, char* argv[]) {
         gemv_ndrange_buff_acc(Q, n_row, block_size);
       }
     }
+    else if (spmv)
+    {
+      #pragma omp parallel
+      {
+          LIKWID_MARKER_REGISTER("SPMV");
+      }
+      spmv_csr_ndrange_usm(Q, n_row, block_size);
+    }
+    
     else if (tri)
     {
       #pragma omp parallel
