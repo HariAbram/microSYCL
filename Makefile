@@ -21,6 +21,7 @@ endif
 
 OPTIMIZE  = yes
 DEBUG     = no
+LIKWID    = yes
 
 LIKWID_LIB = /opt/likwid/lib/ 
 LIKWID_INCLUDE=/opt/likwid/include/
@@ -57,7 +58,12 @@ obj = $(source:.cpp=.o)
 #===============================================================================
 
 # Standard Flags
-CXXFLAGS := $(EXTRA_CFLAGS) $(KERNEL_DIM) -std=c++17 -Wall -DLIKWID_PERFMON -DTYPE=$(TYPE) -I$(LIKWID_INCLUDE) -L$(LIKWID_LIB) -llikwid
+CXXFLAGS := $(EXTRA_CFLAGS) $(KERNEL_DIM) -std=c++17 -Wall 
+
+# LIKWID instrumentation flags
+ifeq ($(LIKWID),yes)
+  CXXFLAGS += -DLIKWID_PERFMON -DTYPE=$(TYPE) -I$(LIKWID_INCLUDE) -L$(LIKWID_LIB) -llikwid
+endif
 
 # Debug Flags
 ifeq ($(DEBUG),yes)

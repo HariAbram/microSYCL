@@ -17,6 +17,7 @@
 #endif
 
 #include "../include/timer.hpp"
+#include "../include/utils.hpp"
 
 using namespace cl;
 using shared_allocator = sycl::usm_allocator<TYPE, sycl::usm::alloc::shared>;
@@ -63,8 +64,13 @@ void gemv_range_usm(sycl::queue &Q, int size)
     auto N = static_cast<size_t>(size);
 
     sycl::range<1> global{N};
-    time.start_timer();
 
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("GEMV");
+    }
+
+    time.start_timer();
     Q.submit([&](sycl::handler& cgh){
         cgh.parallel_for<>(sycl::range<1>(global), [=](sycl::item<1>it){
 
@@ -81,6 +87,11 @@ void gemv_range_usm(sycl::queue &Q, int size)
     });
     Q.wait();
     time.end_timer();
+
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("GEMV");
+    }
 
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : mat vec with range ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
@@ -111,6 +122,11 @@ void gemv_range_buff_acc(sycl::queue &Q, int size)
     auto N = static_cast<size_t>(size);
 
     sycl::range<1> global{N};
+
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("GEMV");
+    }
     time.start_timer();
 
     Q.submit([&](sycl::handler& cgh){
@@ -133,6 +149,11 @@ void gemv_range_buff_acc(sycl::queue &Q, int size)
     });
     Q.wait();
     time.end_timer();
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("GEMV");
+    }
+
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : mat vec with range ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
 
@@ -162,6 +183,11 @@ void gemv_ndrange_usm(sycl::queue &Q, int size, int block_size)
 
     auto N_b = static_cast<size_t>(block_size);
     sycl::range<1> local{N_b};
+
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("GEMV");
+    }
     time.start_timer();
 
     Q.submit([&](sycl::handler& cgh){
@@ -179,6 +205,10 @@ void gemv_ndrange_usm(sycl::queue &Q, int size, int block_size)
     });
     Q.wait();
     time.end_timer();
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("GEMV");
+    }
 
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : mat vec with ndrange ( USM ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
@@ -211,6 +241,11 @@ void gemv_ndrange_buff_acc(sycl::queue &Q, int size, int block_size)
 
     auto N_b = static_cast<size_t>(block_size);
     sycl::range<1> local{N_b};
+
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("GEMV");
+    }
     time.start_timer();
     
     Q.submit([&](sycl::handler& cgh){
@@ -232,6 +267,10 @@ void gemv_ndrange_buff_acc(sycl::queue &Q, int size, int block_size)
     });
     Q.wait();
     time.end_timer();
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("GEMV");
+    }
 
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : mat vec with range ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
@@ -260,6 +299,10 @@ void gemm_range_usm(sycl::queue &Q, int size)
 
     sycl::range<2> global1 {N,N};
 
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("GEMM");
+    }
     time.start_timer();
 
     Q.submit([&](sycl::handler& cgh){
@@ -281,6 +324,10 @@ void gemm_range_usm(sycl::queue &Q, int size)
     Q.wait();
 
     time.end_timer();
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("GEMM");
+    }
 
     if (m3[0]!= size)
     {
@@ -317,8 +364,11 @@ void gemm_range_buff_acc(sycl::queue &Q, int size)
 
     sycl::range<2> global1 {N,N};
 
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("GEMM");
+    }
     time.start_timer();
-
 
     Q.submit([&](sycl::handler& cgh){
         auto m1_acc = m1_buff.get_access<sycl::access::mode::read>(cgh);
@@ -343,6 +393,10 @@ void gemm_range_buff_acc(sycl::queue &Q, int size)
     Q.wait();
     
     time.end_timer();
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("GEMM");
+    }
 
     auto m3_r = m3_buff.get_host_access();
 
@@ -383,6 +437,10 @@ void gemm_ndrange_usm(sycl::queue &Q, int size, int block_size)
     sycl::range<2> global1 {N,N};
     sycl::range<2> local1{N_b,N_b};
 
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("GEMM");
+    }
     time.start_timer();
 
     Q.submit([&](sycl::handler& cgh){
@@ -405,6 +463,10 @@ void gemm_ndrange_usm(sycl::queue &Q, int size, int block_size)
     Q.wait();
 
     time.end_timer();
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("GEMM");
+    }
 
     if (m3[0]!= size)
     {
@@ -444,6 +506,10 @@ void gemm_ndrange_buff_acc(sycl::queue &Q, int size, int block_size)
     sycl::range<2> global1 {N,N};
     sycl::range<2> local1{N_b,N_b};
 
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("GEMM");
+    }
     time.start_timer();
 
  
@@ -472,6 +538,10 @@ void gemm_ndrange_buff_acc(sycl::queue &Q, int size, int block_size)
     Q.wait();
 
     time.end_timer();
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("GEMM");
+    }
 
     auto m3_r = m3_buff.get_host_access();
 
@@ -514,8 +584,11 @@ void gemm_opt_ndrange_usm(sycl::queue &Q, int size, int block_size){
     sycl::range<2> global1 {N,N};
     sycl::range<2> local1{N_b,N_b};
 
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("GEMM-OPT");
+    }
     time.start_timer();
-
  
     Q.submit([&](sycl::handler& cgh){
         auto m1_acc = m1_buff.get_access<sycl::access::mode::read>(cgh);
@@ -547,6 +620,10 @@ void gemm_opt_ndrange_usm(sycl::queue &Q, int size, int block_size){
     Q.wait();
 
     time.end_timer();
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("GEMM-OPT");
+    }
 
     auto m3_r = m3_buff.get_host_access();
 
@@ -591,6 +668,10 @@ void outer_product(sycl::queue &Q, int size, int block_size)
     sycl::range<2> global1 {N,N};
     sycl::range<2> local1{N_b,N_b};
 
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("OUT-PRODUCT");
+    }
     time.start_timer();
  
     Q.submit([&](sycl::handler& cgh){
@@ -610,6 +691,10 @@ void outer_product(sycl::queue &Q, int size, int block_size)
     Q.wait();
 
     time.end_timer();
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("OUT-PRODUCT");
+    }
 
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : outer product with ndrange ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
@@ -643,7 +728,11 @@ void triad(sycl::queue &Q, int size, int block_size)
     sycl::buffer<TYPE,1> v1_buff(v1,size);
     sycl::buffer<TYPE,1> v2_buff(v2,size);
     sycl::buffer<TYPE,1> v3_buff(v3,size);
-
+    
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("TRIAD");
+    }
     time.start_timer();
 
     Q.submit([&](sycl::handler& cgh){
@@ -661,6 +750,10 @@ void triad(sycl::queue &Q, int size, int block_size)
     Q.wait();
 
     time.end_timer();
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("TRIAD");
+    }
 
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : triad with ndrange ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
@@ -696,7 +789,11 @@ void cross_product(sycl::queue &Q, int size, int block_size)
 
     sycl::range<2> global1 {N,N};
     sycl::range<2> local1{N_b,N_b};
-
+    
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_START("CROSS-PRODUCT");
+    }
     time.start_timer();
  
     Q.submit([&](sycl::handler& cgh){
@@ -725,6 +822,10 @@ void cross_product(sycl::queue &Q, int size, int block_size)
     Q.wait();
 
     time.end_timer();
+    #pragma omp parallel
+    {
+        LIKWID_MARKER_STOP("CROSS-PRODUCT");
+    }
 
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : cross product with ndrange ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;

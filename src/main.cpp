@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {
                                         " --range : to test sycl range construct\n"
                                         " --ndrange : to test sycl nd_range construct\n"
                                         " --barrier : to test sycl barrier construct\n"
-                                        " -i : for different routines in vectorization benchmark\n"
+                                        " -i : for different routines in vectorization benchmark (default:1)\n"
                                         "       1 - range with USM\n"
                                         "       2 - range with Buffer and Accessors\n"
                                         "       3 - nd_range with USM\n"
@@ -186,6 +186,10 @@ int main(int argc, char* argv[]) {
 
     if (gemm)
     {
+      #pragma omp parallel
+      {
+          LIKWID_MARKER_REGISTER("GEMM");
+      }
       if (vec_no==1)
       {
         gemm_range_usm(Q, n_row);
@@ -206,11 +210,19 @@ int main(int argc, char* argv[]) {
     }
     else if (gemm_opt)
     {
+      #pragma omp parallel
+      {
+          LIKWID_MARKER_REGISTER("GEMM-OPT");
+      }
       gemm_opt_ndrange_usm(Q, n_row, block_size);
     }
     
     else if (gemv)
     {
+      #pragma omp parallel
+      {
+          LIKWID_MARKER_REGISTER("GEMV");
+      }
       if (vec_no==1)
       {
         gemv_range_usm(Q, n_row);
@@ -230,14 +242,26 @@ int main(int argc, char* argv[]) {
     }
     else if (tri)
     {
+      #pragma omp parallel
+      {
+          LIKWID_MARKER_REGISTER("TRIAD");
+      }
       triad(Q, n_row, block_size);
     }
     else if (out_pro)
     {
+      #pragma omp parallel
+      {
+          LIKWID_MARKER_REGISTER("OUT-PROUCT");
+      }
       outer_product(Q, n_row, block_size);
     }
     else if (cro_pro)
     {
+      #pragma omp parallel
+      {
+          LIKWID_MARKER_REGISTER("CROSS-PRODUCT");
+      }
       cross_product(Q, n_row, block_size);
     }
     else if (mem_alloc)
