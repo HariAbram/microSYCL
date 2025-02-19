@@ -11,7 +11,7 @@
 *.json
 /bin/*
 *.data
-/paralle_micro
+/parallel_micro
 *.old
 *.txt
 
