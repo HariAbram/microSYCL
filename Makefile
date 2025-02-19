@@ -10,18 +10,24 @@ ifndef TYPE
 TYPE        = double
 endif
 
+VENDOR := $(shell lscpu | awk '/Vendor ID/{print $3}')
+
 # Compiler can be set below, or via environment variable
-ifeq ($(VENDOR), acpp)
-  CXX       = acpp
-else ifeq ($(VENDOR), intel-llvm)
+ifeq ($(SYCL_IMPL), oneapi)
+  CXX       = icpx
+else ifeq ($(SYCL_IMPL), intel-llvm)
   CXX       = clang++
 else 
-  CXX	      = icpx 
+  CXX	      = acpp 
 endif
 
 OPTIMIZE  = yes
 DEBUG     = yes
+
+ifndef LIKWID
 LIKWID    = no
+endif
+
 
 LIKWID_LIB = /opt/likwid/lib/ 
 LIKWID_INCLUDE=/opt/likwid/include/
@@ -30,16 +36,16 @@ LIKWID_INCLUDE=/opt/likwid/include/
 # Program name & source code list
 #===============================================================================
 
-ifeq ($(VENDOR), acpp)
+ifeq ($(SYCL_IMPL), oneapi)
+  program = bin/main-dpcpp
+else ifeq ($(SYCL_IMPL), intel-llvm)
+  program = bin/main-intel-llvm
+else 
   ifeq ($(BACKEND), omp)
     program = bin/main-acpp-omp
   else 
     program = bin/main-acpp-generic
   endif
-else ifeq ($(VENDOR), intel-llvm)
-  program = bin/main-intel-llvm
-else 
-  program = bin/main-dpcpp
 endif
 
 source = src/main.cpp\
@@ -65,6 +71,10 @@ ifeq ($(LIKWID),yes)
   CXXFLAGS += -DLIKWID_PERFMON -DTYPE=$(TYPE) -I$(LIKWID_INCLUDE) -L$(LIKWID_LIB) -llikwid
 endif
 
+ifdef VECTOR_WIDTH
+  CXXFLAGS += -mprefer-vector-width=$(VECTOR_WIDTH)
+endif
+
 # Debug Flags
 ifeq ($(DEBUG),yes)
   CXXFLAGS  += -g 
@@ -76,17 +86,17 @@ ifeq ($(OPTIMIZE),yes)
   CXXFLAGS += -Ofast
 endif
 
-ifeq ($(VENDOR), acpp)
+ifeq ($(SYCL_IMPL), oneapi)
+  CXXFLAGS += -fsycl -qopenmp -DDPCPP
+else ifeq ($(SYCL_IMPL), intel-llvm)
+  CXXFLAGS += -fsycl -fopenmp -DDPCPP
+else 
   CXXFLAGS += -DHIPSYCL --acpp-platform=cpu  -fopenmp -DACPP 
   ifeq ($(BACKEND), omp)
     CXXFLAGS += --acpp-targets=omp.accelerated 
   else 
     CXXFLAGS += --acpp-targets=generic
   endif
-else ifeq ($(VENDOR), intel-llvm)
-  CXXFLAGS += -fsycl -fopenmp 
-else 
-  CXXFLAGS += -fsycl -qopenmp -DDPCPP
 endif
 
 ifeq ($(ARCH), a64fx)
