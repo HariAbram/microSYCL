@@ -675,17 +675,15 @@ void outer_product(sycl::queue &Q, int size, int block_size)
 
     timer time;
 
-    TYPE * __restrict__ m1 = (TYPE *)malloc(size*size*sizeof(TYPE));
-    TYPE * __restrict__ v1 = (TYPE *)malloc(size*sizeof(TYPE));
-    TYPE * __restrict__ v2 = (TYPE *)malloc(size*sizeof(TYPE));
+    TYPE * __restrict__ m1 = sycl::malloc_shared<TYPE>(size*size*sizeof(TYPE),Q);
+    TYPE * __restrict__ v1 = sycl::malloc_shared<TYPE>(size*sizeof(TYPE),Q);
+    TYPE * __restrict__ v2 = sycl::malloc_shared<TYPE>(size*sizeof(TYPE),Q); Q.wait();
 
     std::fill(m1,m1+size*size,0.0);
     std::fill(v1,v1+size,1);
     std::fill(v2,v2+size,1);
 
-    sycl::buffer<TYPE,1> m1_buff(m1,size*size);
-    sycl::buffer<TYPE,1> v1_buff(v1,size);
-    sycl::buffer<TYPE,1> v2_buff(v2,size);
+    Q.wait();
 
     sycl::range<2> global1 {N,N};
     sycl::range<2> local1{N_b,N_b};
@@ -697,9 +695,6 @@ void outer_product(sycl::queue &Q, int size, int block_size)
     time.start_timer();
  
     Q.submit([&](sycl::handler& cgh){
-        auto m1_acc = m1_buff.get_access<sycl::access::mode::read_write>(cgh);
-        auto v1_acc = v1_buff.get_access<sycl::access::mode::read>(cgh);
-        auto v2_acc = v2_buff.get_access<sycl::access::mode::read>(cgh);
 
         cgh.parallel_for<>(sycl::nd_range<2>(global1,local1), [=](sycl::nd_item<2>it){
 
@@ -707,7 +702,7 @@ void outer_product(sycl::queue &Q, int size, int block_size)
             auto j = it.get_global_id(1);
             auto N = it.get_global_range(0);
 
-            m1_acc[i*N+j] = v1_acc[i]*v2_acc[j];
+            m1[i*N+j] = v1[i]*v2[j];
         });
     });
     Q.wait();
@@ -721,9 +716,9 @@ void outer_product(sycl::queue &Q, int size, int block_size)
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : outer product with ndrange ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
 
-    free(m1);
-    free(v1);
-    free(v2);
+    free(m1,Q);
+    free(v1,Q);
+    free(v2,Q);
 }
 
 ////////////////////////////////////////////////////////// triad
@@ -736,20 +731,18 @@ void triad(sycl::queue &Q, int size, int block_size)
 
     timer time;
 
-    TYPE * __restrict__ v1 = (TYPE *)malloc(size*sizeof(TYPE)); 
-    TYPE * __restrict__ v2 = (TYPE *)malloc(size*sizeof(TYPE)); 
-    TYPE * __restrict__ v3 = (TYPE *)malloc(size*sizeof(TYPE)); 
+    TYPE * __restrict__ v1 = sycl::malloc_shared<TYPE>(size*sizeof(TYPE),Q); 
+    TYPE * __restrict__ v2 = sycl::malloc_shared<TYPE>(size*sizeof(TYPE),Q); 
+    TYPE * __restrict__ v3 = sycl::malloc_shared<TYPE>(size*sizeof(TYPE),Q);Q.wait(); 
 
     std::fill(v1,v1+size,1.0);
     std::fill(v2,v2+size,2.0);
     std::fill(v3,v3+size,0.0);
 
+    Q.wait();
+
     sycl::range<1> global1{N};
     sycl::range<1> local1{N_b};
-
-    sycl::buffer<TYPE,1> v1_buff(v1,size);
-    sycl::buffer<TYPE,1> v2_buff(v2,size);
-    sycl::buffer<TYPE,1> v3_buff(v3,size);
     
     #pragma omp parallel
     {
@@ -758,15 +751,12 @@ void triad(sycl::queue &Q, int size, int block_size)
     time.start_timer();
 
     Q.submit([&](sycl::handler& cgh){
-        auto v1_acc = v1_buff.get_access<sycl::access::mode::read>(cgh);
-        auto v2_acc = v2_buff.get_access<sycl::access::mode::read>(cgh);
-        auto v3_acc = v3_buff.get_access<sycl::access::mode::read_write>(cgh);
 
         cgh.parallel_for< >(sycl::nd_range<1>(global1,local1), [=](sycl::nd_item<1>it){
 
             auto i = it.get_global_id(0);
 
-            v3_acc[i]  = v2_acc[i] + v1_acc[i]* N;
+            v3[i]  = v2[i] + v1[i]* N;
         });
     });
     Q.wait();
@@ -780,9 +770,9 @@ void triad(sycl::queue &Q, int size, int block_size)
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : triad with ndrange ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
 
-    free(v1);
-    free(v2);
-    free(v3);
+    free(v1,Q);
+    free(v2,Q);
+    free(v3,Q);
 
 }
 
@@ -797,17 +787,15 @@ void cross_product(sycl::queue &Q, int size, int block_size)
 
     timer time;
 
-    TYPE * __restrict__ m1 = (TYPE *)malloc(size*size*sizeof(TYPE));
-    TYPE * __restrict__ v1 = (TYPE *)malloc(size*sizeof(TYPE));
-    TYPE * __restrict__ v2 = (TYPE *)malloc(size*sizeof(TYPE));
+    TYPE * __restrict__ m1 = sycl::malloc_shared<TYPE>(size*size*sizeof(TYPE),Q);
+    TYPE * __restrict__ v1 = sycl::malloc_shared<TYPE>(size*sizeof(TYPE),Q);
+    TYPE * __restrict__ v2 = sycl::malloc_shared<TYPE>(size*sizeof(TYPE),Q); Q.wait();
 
     std::fill(m1,m1+size*size,0.0);
     std::fill(v1,v1+size,1);
     std::fill(v2,v2+size,1);
 
-    sycl::buffer<TYPE,1> m1_buff(m1,size*size);
-    sycl::buffer<TYPE,1> v1_buff(v1,size);
-    sycl::buffer<TYPE,1> v2_buff(v2,size);
+    Q.wait();
 
     sycl::range<2> global1 {N,N};
     sycl::range<2> local1{N_b,N_b};
@@ -819,9 +807,6 @@ void cross_product(sycl::queue &Q, int size, int block_size)
     time.start_timer();
  
     Q.submit([&](sycl::handler& cgh){
-        auto m1_acc = m1_buff.get_access<sycl::access::mode::read_write>(cgh);
-        auto v1_acc = v1_buff.get_access<sycl::access::mode::read>(cgh);
-        auto v2_acc = v2_buff.get_access<sycl::access::mode::read>(cgh);
 
         cgh.parallel_for< >(sycl::nd_range<2>(global1,local1), [=](sycl::nd_item<2>it){
 
@@ -832,11 +817,11 @@ void cross_product(sycl::queue &Q, int size, int block_size)
 
             if (i == j)
             {
-                m1_acc[i*N+j] = 0;
+                m1[i*N+j] = 0;
             }
             else
             {
-                m1_acc[i*N+j] = v1_acc[i]*v2_acc[j]*tmp;
+                m1[i*N+j] = v1[i]*v2[j]*tmp;
             }
             
         });

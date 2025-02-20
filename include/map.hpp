@@ -9,11 +9,16 @@
 
 
 
-//using namespace cl;
+/*matrix addition*/
+void range_usm_matrix_addition(sycl::queue &Q, int size, int dim, int iter,bool print);
 
-/*gemv*/
+void ndrange_usm_matrix_addition(sycl::queue &Q, int size, int dim, int block_size, int iter, bool print);
 
-void range_usm_map(sycl::queue &Q, int size, int dim);
+/*transpose*/
+
+void range_usm_matrix_transpose(sycl::queue &Q, int size, int dim, int iter, bool print);
+
+void ndrange_usm_matrix_transpose(sycl::queue &Q, int size, int dim, int block_size, int iter, bool print);
 
 
 

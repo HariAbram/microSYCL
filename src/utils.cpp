@@ -131,6 +131,19 @@ void print_results(double *timings, int iter, int size, std::string benchmark, i
     << std::endl
     << std::fixed;
   }  
+  else if (bench == 5)
+  {
+    std::cout
+    << std::left << std::setw(24) << benchmark
+    << std::left << std::setw(24) << dim
+    << std::left << std::setw(24) << std::setprecision(6) << *minmax.first*1E-9
+    << std::left << std::setw(24) << std::setprecision(6) << *minmax.second*1E-9
+    << std::left << std::setw(24) << std::setprecision(6) << median*1E-9
+    << std::left << std::setw(24) << std::setprecision(6) << average*1E-9
+    << std::left << std::setw(24) << std::setprecision(6) << std_dev*1E-9
+    << std::endl
+    << std::fixed;
+  }  
 
 }
 

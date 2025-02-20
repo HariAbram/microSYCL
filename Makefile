@@ -54,6 +54,7 @@ source = src/main.cpp\
          src/kernels.cpp\
          src/utils.cpp\
          src/vectorization-bench.cpp\
+         src/map.cpp\
          src/timer.cpp\
          src/micro-bench-omp.cpp
 
@@ -64,7 +65,12 @@ obj = $(source:.cpp=.o)
 #===============================================================================
 
 # Standard Flags
-CXXFLAGS := $(EXTRA_CFLAGS) $(KERNEL_DIM) -std=c++17 -Wall 
+CXXFLAGS := $(EXTRA_CFLAGS) $(KERNEL_DIM) -std=c++17 
+
+ifdef WARNING
+CXXFLAGS += -Wall
+endif
+
 
 # LIKWID instrumentation flags
 ifeq ($(LIKWID),yes)

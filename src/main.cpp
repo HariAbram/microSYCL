@@ -19,6 +19,7 @@
 #include "../include/vectorization-bench.hpp"
 #include "../include/micro-bench-omp.hpp"
 #include "../include/utils.hpp"
+#include "../include/map.hpp"
 
 //using namespace cl;
 
@@ -43,6 +44,9 @@ static struct option long_options[] = {
   {"outer-product", 0, NULL, 'O'},
   {"cross-product", 0, NULL, 'C'},
   {"spmv", 0, NULL, 'S'},
+  {"map", 0, NULL, 'M'},
+  {"transpose", 0, NULL, 't'},
+  {"mat-add", 0, NULL, 'A'},
   {0,0,0,0}
 };
 
@@ -54,27 +58,30 @@ int main(int argc, char* argv[]) {
     int block_size = 16;
 
 
-    bool gemv = false ;
-    bool gemm=false;
-    bool gemm_opt=false;
-    bool mem_alloc=false;
-    bool reduction=false;
-    bool range=false;
-    bool nd_range=false;
-    bool barrier=false;
-    bool print_system=false;
-    bool help = false;
-    bool delay = false;
-    bool tri = false;
-    bool out_pro = false;
-    bool cro_pro = false;
-    bool spmv = false;
+    bool gemv           = false;
+    bool gemm           = false;
+    bool gemm_opt       = false;
+    bool mem_alloc      = false;
+    bool reduction      = false;
+    bool range          = false;
+    bool nd_range       = false;
+    bool barrier        = false;
+    bool print_system   = false;
+    bool help           = false;
+    bool delay          = false;
+    bool tri            = false;
+    bool out_pro        = false;
+    bool cro_pro        = false;
+    bool spmv           = false;
+    bool map            = false;
+    bool transpose      = false;
+    bool mat_add        = false;
 
     int vec_no = 1;
 
     int iter = 10;
 
-    while ((opt = getopt_long(argc, argv, ":s:b:v:i:h:m:r:a:e:n:w:I:p:d:T:O:C:G:S:", 
+    while ((opt = getopt_long(argc, argv, ":s:b:v:i:h:m:r:a:e:n:w:I:p:d:T:O:C:G:S:M:t:A:", 
           long_options, &option_index)) != -1 ) {
     switch(opt){
       case 's':
@@ -119,6 +126,15 @@ int main(int argc, char* argv[]) {
       case 'S':
         spmv = true;
         break;
+      case 'M':
+        map = true;
+        break;
+      case 'A':
+        mat_add = true;
+        break;
+      case 't':
+        transpose = true;
+        break;
       case 'p':
         print_system = true;
         break;
@@ -156,12 +172,15 @@ int main(int argc, char* argv[]) {
     {
 
       std::cout<<"Usage: \n"<< argv[0]<< " [-s size |-b blocksize <optional> |-I No. iterations | --print-system\n"
-                                        " --gemm            : to run matrix matrix multiplication \n" 
-                                        " --gemm-opt        : to optimized matrix matrix multiplication \n"
-                                        " --gemv            : to run matrix vector multiplication \n"
-                                        " --triad           : to run a triad operation \n"
-                                        " --outer-product   : to run a outer product operation \n"
-                                        " --spmv            : execute spmv kernel\n"
+                                        " --gemm            : to execute matrix matrix multiplication \n" 
+                                        " --gemm-opt        : to execute optimized matrix matrix multiplication \n"
+                                        " --gemv            : to execute matrix vector multiplication \n"
+                                        " --triad           : to execute a triad operation \n"
+                                        " --outer-product   : to execute a outer product operation \n"
+                                        " --spmv            : to execute a spmv kernel\n"
+                                        " --map             : test for different memory access patterns \n"
+                                        "       --transpose : with transpose \n"
+                                        "       --mat-add   : with matrix addition \n"
                                         "-------micro-benchmarks--------\n"
                                         " --mem-alloc       : to alloc memory using SYCL and standard malloc \n"
                                         " --reduction       : to test reduction using atomics and sycl reduction construct\n"
@@ -279,6 +298,70 @@ int main(int argc, char* argv[]) {
           LIKWID_MARKER_REGISTER("CROSS-PRODUCT");
       }
       cross_product(Q, n_row, block_size);
+    }
+    else if (map)
+    {
+      
+      
+      std::cout
+          << std::left << std::setw(24) << "Function"
+          << std::left << std::setw(24) << "Dimension"
+          << std::left << std::setw(24) << "Min (sec)"
+          << std::left << std::setw(24) << "Max"
+          << std::left << std::setw(24) << "Median"
+          << std::left << std::setw(24) << "Mean"
+          << std::left << std::setw(24) << "std_dev"
+          << std::endl
+          << std::fixed;
+
+      if (transpose)
+      {
+        /*transpose range*/
+        range_usm_matrix_transpose(Q, n_row, 2, 3, false);
+
+        range_usm_matrix_transpose(Q, n_row, 2, iter, true);
+
+        /*transpose ndrange*/
+        ndrange_usm_matrix_transpose(Q, n_row, 2, block_size, 3, false);
+
+        ndrange_usm_matrix_transpose(Q, n_row, 2, block_size, iter, true);
+      }
+      else if (mat_add)      
+      {
+        /*dimesion 1 with range*/
+        range_usm_matrix_addition(Q, n_row, 1, 3, false);
+        
+        range_usm_matrix_addition(Q, n_row, 1, iter, true);
+
+        /*dimesion 2 with range*/
+        range_usm_matrix_addition(Q, n_row, 2, 3, false);
+
+        range_usm_matrix_addition(Q, n_row, 2, iter, true);
+
+        /*dimesion 3 with range*/
+        range_usm_matrix_addition(Q, n_row, 3, 3, false);
+
+        range_usm_matrix_addition(Q, n_row, 3, iter, true);
+
+        /*dimesion 1 with ndrange*/
+        ndrange_usm_matrix_addition(Q, n_row, 1, block_size, 3, false);
+
+        ndrange_usm_matrix_addition(Q, n_row, 1, block_size, iter, true);
+
+        /*dimesion 2 with ndrange*/
+        ndrange_usm_matrix_addition(Q, n_row, 2, block_size, 3, false);
+
+        ndrange_usm_matrix_addition(Q, n_row, 2, block_size, iter, true);
+
+        /*dimesion 3 with ndrange*/
+        ndrange_usm_matrix_addition(Q, n_row, 3, block_size, 3, false);
+
+        ndrange_usm_matrix_addition(Q, n_row, 3, block_size, iter, true);
+
+      }
+
+      
+
     }
     else if (mem_alloc)
     {
