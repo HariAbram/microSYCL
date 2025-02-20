@@ -601,13 +601,9 @@ void gemm_opt_ndrange_usm(sycl::queue &Q, int size, int block_size){
 
     auto N_block = static_cast<size_t>(N/OPT_BLOCK_SIZE);
     //sycl::range<3> global1 {N_block,N_block,N_block};
-    sycl::range<3> global1 {N,N,N};
-    if (N_block < N_b)
-    {
-        auto N_b = static_cast<size_t>(N_block);
-    }
+    sycl::range<2> global1 {N,N};
     
-    sycl::range<3> local1{N_b,N_b,N_b};
+    sycl::range<2> local1{N_b,N_b};
 
     #pragma omp parallel
     {
@@ -617,12 +613,18 @@ void gemm_opt_ndrange_usm(sycl::queue &Q, int size, int block_size){
  
     Q.submit([&](sycl::handler& cgh){
 
-        cgh.parallel_for< >(sycl::nd_range<3>(global1,local1), [=](sycl::nd_item<3>it){
+        cgh.parallel_for< >(sycl::nd_range<2>(global1,local1), [=](sycl::nd_item<2>it){
 
             auto i = it.get_global_id(0);
-            auto j = it.get_global_id(1);
-            auto k = it.get_global_id(2);
-            m3[i*N+j] += m2[i*N+k]*m1[k*N+j];
+            auto k = it.get_global_id(1);
+
+            //TYPE temp = 0.0;
+
+            for (size_t j = 0; j < N; j++)
+            {
+                m3[i*N+j] += m2[i*N+k]*m1[k*N+j];
+            }
+            
             /*
             for (size_t ii = i*OPT_BLOCK_SIZE; ii < (i+1)*OPT_BLOCK_SIZE; ii++)
             {

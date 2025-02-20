@@ -13,6 +13,7 @@
 
 /*gemv*/
 
+void range_usm_map(sycl::queue &Q, int size, int dim);
 
 
 
