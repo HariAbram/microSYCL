@@ -302,7 +302,7 @@ int main(int argc, char* argv[]) {
       
       
       std::cout
-          << std::left << std::setw(24) << "Function"
+          << std::left << std::setw(24) << "Benchmark"
           << std::left << std::setw(24) << "Dimension"
           << std::left << std::setw(24) << "Min (sec)"
           << std::left << std::setw(24) << "Max"
@@ -364,7 +364,7 @@ int main(int argc, char* argv[]) {
     else if (mem_alloc)
     {
       std::cout
-          << std::left << std::setw(24) << "Function" 
+          << std::left << std::setw(24) << "Benchmark" 
           << std::left << std::setw(24) << "MBytes/sec"
           << std::left << std::setw(24) << "Min (sec)" 
           << std::left << std::setw(24) << "Max" 
@@ -413,7 +413,7 @@ int main(int argc, char* argv[]) {
     else if (reduction)
     {
       std::cout
-          << std::left << std::setw(24) << "Function"
+          << std::left << std::setw(24) << "Benchmark"
           << std::left << std::setw(24) << "Dimension"
           << std::left << std::setw(24) << "Min (sec)"
           << std::left << std::setw(24) << "Max"
@@ -465,7 +465,7 @@ int main(int argc, char* argv[]) {
     else if (range)
     {
       std::cout
-          << std::left << std::setw(24) << "Function"
+          << std::left << std::setw(24) << "Benchmark"
           << std::left << std::setw(24) << "Dimension"
           << std::left << std::setw(24) << "Min (sec)"
           << std::left << std::setw(24) << "Max"
@@ -505,7 +505,7 @@ int main(int argc, char* argv[]) {
     {
 
       std::cout
-          << std::left << std::setw(24) << "Function"
+          << std::left << std::setw(24) << "Benchmark"
           << std::left << std::setw(24) << "Dimension"
           << std::left << std::setw(24) << "Min (sec)"
           << std::left << std::setw(24) << "Max"
@@ -544,7 +544,7 @@ int main(int argc, char* argv[]) {
     {
       
       std::cout
-          << std::left << std::setw(24) << "Function"
+          << std::left << std::setw(24) << "Benchmark"
           << std::left << std::setw(24) << "Dimension"
           << std::left << std::setw(24) << "Min (sec)"
           << std::left << std::setw(24) << "Max"
