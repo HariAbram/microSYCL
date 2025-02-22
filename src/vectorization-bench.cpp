@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <chrono>
 #include <vector>
+#include <omp.h>
 
 #ifndef TYPE
 #define TYPE double
@@ -37,6 +38,7 @@ bool verification (TYPE *m1, TYPE *m2 , TYPE *m3, int size)
             }
             if (m3[i*size+j] != temp)
             {
+                std::cout<< "verification failed at these indices i: "<<i<<" j: "<<j<<std::endl;
                 result = false;
                 return result;
             }
@@ -351,10 +353,12 @@ void gemm_range_usm(sycl::queue &Q, int size)
         LIKWID_MARKER_STOP("GEMM");
     }
 
+#ifdef VERIFY
     if (m3[0]!= size)
     {
         std::cout<< "Verification Failed" << std::endl;
     }
+#endif
 
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : gemm with range ( USM ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
@@ -420,13 +424,14 @@ void gemm_range_buff_acc(sycl::queue &Q, int size)
         LIKWID_MARKER_STOP("GEMM");
     }
 
+#ifdef VERIFY
     auto m3_r = m3_buff.get_host_access();
 
     if (m3_r[0] != size)
     {
         std::cout << "Verification Failed" << std::endl;
     }
-    
+#endif
 
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : gemm with range ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
@@ -490,10 +495,12 @@ void gemm_ndrange_usm(sycl::queue &Q, int size, int block_size)
         LIKWID_MARKER_STOP("GEMM");
     }
 
+#ifdef VERIFY
     if (m3[0]!= size)
     {
         std::cout<< "Verification Failed" << std::endl;
     }
+#endif
 
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : gemm with nd_range ( USM ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
@@ -565,13 +572,14 @@ void gemm_ndrange_buff_acc(sycl::queue &Q, int size, int block_size)
         LIKWID_MARKER_STOP("GEMM");
     }
 
+#ifdef VERIFY
     auto m3_r = m3_buff.get_host_access();
 
     if (m3_r[0] != size)
     {
         std::cout << "Verification Failed" << std::endl;
     }
-    
+#endif 
 
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : gemm with nd_range( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
@@ -597,13 +605,11 @@ void gemm_opt_ndrange_usm(sycl::queue &Q, int size, int block_size){
 
     std::fill(m1,m1+size*size,1);
     std::fill(m2,m2+size*size,1);
-    std::fill(m3,m3+size*size,0.0);
+    std::fill(m3,m3+size*size,0.0); Q.wait();
 
-    auto N_block = static_cast<size_t>(N/OPT_BLOCK_SIZE);
-    //sycl::range<3> global1 {N_block,N_block,N_block};
     sycl::range<2> global1 {N,N};
     
-    sycl::range<2> local1{N_b,N_b};
+    sycl::range<2> local1{OPT_BLOCK_SIZE,OPT_BLOCK_SIZE};
 
     #pragma omp parallel
     {
@@ -613,33 +619,46 @@ void gemm_opt_ndrange_usm(sycl::queue &Q, int size, int block_size){
  
     Q.submit([&](sycl::handler& cgh){
 
+        sycl::accessor<TYPE, 2, sycl::access::mode::read_write, sycl::access::target::local>  localm1(sycl::range<2>(OPT_BLOCK_SIZE, OPT_BLOCK_SIZE), cgh);
+        sycl::accessor<TYPE, 2, sycl::access::mode::read_write, sycl::access::target::local>  localm2(sycl::range<2>(OPT_BLOCK_SIZE, OPT_BLOCK_SIZE), cgh);
+
         cgh.parallel_for< >(sycl::nd_range<2>(global1,local1), [=](sycl::nd_item<2>it){
 
-            auto i = it.get_global_id(0);
-            auto k = it.get_global_id(1);
+            int i = it.get_global_id(0);
+            int j = it.get_global_id(1);
+            int ii = it.get_local_id(0);
+            int jj = it.get_local_id(1);            
 
-            //TYPE temp = 0.0;
+            TYPE acc = 0.0;
 
-            for (size_t j = 0; j < N; j++)
-            {
-                m3[i*N+j] += m2[i*N+k]*m1[k*N+j];
-            }
-            
-            /*
-            for (size_t ii = i*OPT_BLOCK_SIZE; ii < (i+1)*OPT_BLOCK_SIZE; ii++)
-            {
-                for (size_t jj = j*OPT_BLOCK_SIZE; jj < (j+1)*OPT_BLOCK_SIZE; jj++)
-                {
-                    for (size_t kk = k*OPT_BLOCK_SIZE; kk < (k+1)+OPT_BLOCK_SIZE; kk++)
-                    {
-                        m3[ii*N+jj] += m2[ii*N+kk]*m1[kk*N+jj];
-                    }
+            // Loop over the tiles required to compute the C element.
+            for (int t = 0; t < (N+OPT_BLOCK_SIZE -1) / OPT_BLOCK_SIZE; t++) {
+                // Load a BLOCK_SIZE x BLOCK_SIZE tile of matrix m1 into local memory.
+                int m1Row = i;
+                int m1Col = t * OPT_BLOCK_SIZE + jj;
+                localm1[ii][jj] = m1[m1Row * N + m1Col];
+    
+                // Load a BLOCK_SIZE x BLOCK_SIZE tile of matrix m2 into local memory.
+                int m2Row = t * OPT_BLOCK_SIZE + ii;
+                int m2Col = j;
+                localm2[ii][jj] = m2[m2Row * N + m2Col];
+    
+                // Synchronize to ensure the tile is loaded.
+                it.barrier(sycl::access::fence_space::local_space);
+    
+                // Multiply the two tiles together.
+                for (int k = 0; k < OPT_BLOCK_SIZE; k++) {
+                    acc += localm1[ii][k] * localm2[k][jj];
                 }
-                 
-            }*/
-
+    
+                // Synchronize to ensure that computation using the current tile is done.
+                it.barrier(sycl::access::fence_space::local_space);
+            }
+    
+            // Write the result to matrix m3.
+            m3[i * N + j] = acc;
+                
         });
-
     });
     Q.wait();
 
@@ -648,12 +667,14 @@ void gemm_opt_ndrange_usm(sycl::queue &Q, int size, int block_size){
     {
         LIKWID_MARKER_STOP("GEMM-OPT");
     }
-
-    if (m3[0] != size)
-    {
-        std::cout << "Verification Failed " << m3[0]<< "not equal to" << size << std::endl;
-    }
     
+#ifdef VERIFY
+    bool verify = verification(m1, m2, m3, size);
+    if (verify == false)
+    {
+        std::cout << "Verification Failed " << std::endl;
+    }
+#endif
 
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : gemm with nd_range( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;

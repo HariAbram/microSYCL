@@ -23,6 +23,7 @@ endif
 
 OPTIMIZE  = yes
 DEBUG     = yes
+VERIFY    = no
 
 ifndef LIKWID
 LIKWID    = no
@@ -72,6 +73,7 @@ CXXFLAGS += -Wall
 endif
 
 
+
 # LIKWID instrumentation flags
 ifeq ($(LIKWID),yes)
   CXXFLAGS += -DLIKWID_PERFMON -DTYPE=$(TYPE) -I$(LIKWID_INCLUDE) -L$(LIKWID_LIB) -llikwid
@@ -79,6 +81,10 @@ endif
 
 ifdef VECTOR_WIDTH
   CXXFLAGS += -mprefer-vector-width=$(VECTOR_WIDTH)
+endif
+
+ifeq ($(VERIFY),yes)
+  CXXFLAGS += -DVERIFY
 endif
 
 # Debug Flags
