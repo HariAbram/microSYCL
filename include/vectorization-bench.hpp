@@ -1,3 +1,6 @@
+#ifndef VECTORIZATION_HPP
+#define VECTORIZATION_HPP
+
 #include <iostream>
 #include <math.h>
 #include <vector>
@@ -6,10 +9,6 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <chrono>
-
-
-
-//using namespace cl;
 
 /*gemv*/
 void gemv_range_usm(sycl::queue &Q, int size);
@@ -46,5 +45,4 @@ void spmv_csr_ndrange_usm(sycl::queue &Q, int size, int block_size);
 
 //void spmm__ndrange_usm(sycl::queue &Q, int size, int block_size);
 
-
-
+#endif

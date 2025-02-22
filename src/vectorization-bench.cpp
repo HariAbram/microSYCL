@@ -20,9 +20,6 @@
 #include "../include/timer.hpp"
 #include "../include/utils.hpp"
 
-//using namespace cl;
-using shared_allocator = sycl::usm_allocator<TYPE, sycl::usm::alloc::shared>;
-
 bool verification (TYPE *m1, TYPE *m2 , TYPE *m3, int size)
 {
     bool result = true;

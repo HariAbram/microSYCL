@@ -19,9 +19,6 @@
 #include "../include/timer.hpp"
 #include "../include/utils.hpp"
 
-
-
-
 void range_usm_matrix_addition(sycl::queue &Q, int size, int dim, int iter, bool print){
 
     timer time;
@@ -143,7 +140,6 @@ void range_usm_matrix_addition(sycl::queue &Q, int size, int dim, int iter, bool
     sycl::free((TYPE*)m3,Q);
 
 }
-
 
 void ndrange_usm_matrix_addition(sycl::queue &Q, int size, int dim, int block_size, int iter, bool print){
 

@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef UTILS_HPP
+#define UTILS_HPP
 
 #include <iostream>
 #include <math.h>
@@ -12,8 +12,6 @@
 #include <algorithm>
 #include <string>
 #include <iomanip>
-
-//using namespace cl;
 
 #ifdef LIKWID_PERFMON
 #include <likwid-marker.h>

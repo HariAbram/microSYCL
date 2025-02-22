@@ -1,3 +1,6 @@
+#ifndef PARALLEL_HPP
+#define PARALLEL_HPP
+
 #include <iostream>
 #include <math.h>
 #include <vector>
@@ -6,8 +9,6 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <chrono>
-
-//using namespace cl;
 
 double delay_time();
 
@@ -52,4 +53,4 @@ void subgroup_barrier_test_usm(sycl::queue &Q, int size, int block_size, bool pr
 void subgroup_barrier_test_buff_acc(sycl::queue &Q, int size, int block_size, bool print, int iter, int dim);
 
 
-
+#endif

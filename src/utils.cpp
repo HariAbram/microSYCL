@@ -1,5 +1,5 @@
-#ifndef COMMON_HPP
-#define COMMON_HPP
+#ifndef UTILS_CPP
+#define UTILS_CPP
 
 #include <iostream>
 #include <math.h>
@@ -13,7 +13,6 @@
 #include <string>
 #include <iomanip>
 #include <CL/sycl.hpp>
-//using namespace cl;
 
 #ifndef TYPE
 #define TYPE double
@@ -170,8 +169,7 @@ void delay_time(int size)
 
 }
 
-/*sparse utilities*/
-
+/*sparse matrix utilities*/
 void init_sparse_arrays(TYPE *m, int size, int sparsity){
   int i,j;
 
@@ -197,9 +195,5 @@ void init_sparse_arrays(TYPE *m, int size, int sparsity){
   }
 
 }
-
-
-
-
 
 #endif

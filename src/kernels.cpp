@@ -15,8 +15,6 @@
 #define TYPE double
 #endif
 
-//using namespace cl;
-
 /////////////////////////////////////////////// init arrays
 
 void init_arrays(sycl::queue &Q, TYPE *m, TYPE *a, sycl::range<1> global)

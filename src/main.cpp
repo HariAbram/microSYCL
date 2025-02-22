@@ -21,8 +21,6 @@
 #include "../include/utils.hpp"
 #include "../include/map.hpp"
 
-//using namespace cl;
-
 static struct option long_options[] = {
   /* name, has_arg, flag, val */
   {"block size", 1, NULL, 'b'},
