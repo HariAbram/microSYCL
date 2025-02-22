@@ -161,7 +161,6 @@ void kernel_parallel_1(sycl::queue &Q, TYPE* sum, sycl::range<1> global, sycl::r
     Q.wait();
 }
 
-
 void kernel_parallel_1(sycl::queue &Q, sycl::buffer<TYPE, 1> sum_buff, sycl::range<1> global)
 {
     Q.submit([&](sycl::handler& cgh){

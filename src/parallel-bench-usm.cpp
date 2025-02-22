@@ -320,9 +320,7 @@ void device_memory_alloc(sycl::queue &Q, int size, int block_size ,bool print, i
 
 }
 
-
 // sycl::range constuct
-
 
 void range_with_usm(sycl::queue &Q, int size, int dim, bool print, int iter)
 {
@@ -407,7 +405,6 @@ void range_with_usm(sycl::queue &Q, int size, int dim, bool print, int iter)
 }
 
 // sycl::nd_range constuct
-
 
 void nd_range_with_usm(sycl::queue &Q, int size, int block_size ,int dim, bool print, int iter)
 {
@@ -496,7 +493,6 @@ void nd_range_with_usm(sycl::queue &Q, int size, int block_size ,int dim, bool p
      
     
 } 
-
 
 // reduction 
 
@@ -589,6 +585,8 @@ void reduction_with_usm(sycl::queue &Q, int size, int block_size, bool print, in
     sycl::free(sum,Q);
 }
 
+// barriers
+
 void group_barrier_test_usm(sycl::queue &Q, int size, int block_size, bool print, int iter, int dim)
 {
     
@@ -674,7 +672,6 @@ void group_barrier_test_usm(sycl::queue &Q, int size, int block_size, bool print
         std::cout << "ERROR: the dimension input should be 1 or 2 " << std::endl;
     }
 }
-
 
 void subgroup_barrier_test_usm(sycl::queue &Q, int size, int block_size, bool print, int iter, int dim)
 {

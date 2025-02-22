@@ -144,7 +144,6 @@ void range_with_buff_acc(sycl::queue &Q, int size, int dim, bool print, int iter
          
 }
 
-
 // sycl::nd_range constuct
 
 void nd_range_with_buff_acc(sycl::queue &Q, int size, int block_size ,int dim, bool print, int iter)
@@ -346,6 +345,7 @@ void reduction_with_buf_acc(sycl::queue &Q, int size, int block_size, bool print
     free(m_shared);
 }
 
+// barrier
 void group_barrier_test_buff_acc(sycl::queue &Q, int size, int block_size, bool print, int iter, int dim)
 {
 

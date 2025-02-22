@@ -207,7 +207,6 @@ int main(int argc, char* argv[]) {
       std::cout << "running on ..."<< std::endl;
       std::cout << Q.get_device().get_info<sycl::info::device::name>()<<"\n"<<std::endl;
     }
-
     if (gemm)
     {
       #pragma omp parallel
@@ -230,7 +229,6 @@ int main(int argc, char* argv[]) {
       {
         gemm_ndrange_buff_acc(Q, n_row, block_size);
       }
-
     }
     else if (gemm_opt)
     {
@@ -240,7 +238,6 @@ int main(int argc, char* argv[]) {
       }
       gemm_opt_ndrange_usm(Q, n_row, block_size);
     }
-    
     else if (gemv)
     {
       #pragma omp parallel
@@ -272,7 +269,6 @@ int main(int argc, char* argv[]) {
       }
       spmv_csr_ndrange_usm(Q, n_row, block_size);
     }
-    
     else if (tri)
     {
       #pragma omp parallel
@@ -539,7 +535,6 @@ int main(int argc, char* argv[]) {
 
       parallel_for_omp_nested(n_row, true, iter);
     }
-    
     else if (barrier)
     {
       
@@ -594,8 +589,7 @@ int main(int argc, char* argv[]) {
     else if (delay)
     {
       delay_time(n_row);
-    }
-    
+    } 
     else
     {
       fprintf(stderr, "No input parameters specified, use --help to see how to use this binary\n"); 

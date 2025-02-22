@@ -123,7 +123,6 @@ void gemv_range_usm(sycl::queue &Q, int size)
 
 }
 
-
 void gemv_range_buff_acc(sycl::queue &Q, int size)
 {
     timer time;
@@ -680,7 +679,6 @@ void gemm_opt_ndrange_usm(sycl::queue &Q, int size, int block_size){
     free(m2,Q);
     free(m3,Q);
 }
-
 
 ////////////////////////////////////////////////////////// outer-product
 
