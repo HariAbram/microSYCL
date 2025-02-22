@@ -30,6 +30,9 @@ For optimal performance set `OMP_PROC_BIND` environment variable is set to true.
 			--outer-product	: to run an outer product benchmark
 			--cross-product	: to run an cross product benchmark
 			--spmv : execute spmv kernel
+ 			--map  : test for different memory access patterns 
+					--transpose : with transpose 
+					--mat-add   : with matrix addition
 			-i: for different routines in vectorization benchmark
 		    	  1 - range with USM
 		    	  2 - range with Buffer and Accessors
