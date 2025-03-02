@@ -30,7 +30,7 @@ LIKWID    = no
 endif
 
 
-LIKWID_LIB = /opt/likwid/lib/ 
+LIKWID_LIB=/opt/likwid/lib/ 
 LIKWID_INCLUDE=/opt/likwid/include/
 
 #===============================================================================
@@ -66,7 +66,7 @@ obj = $(source:.cpp=.o)
 #===============================================================================
 
 # Standard Flags
-CXXFLAGS := $(EXTRA_CFLAGS) $(KERNEL_DIM) -std=c++17 
+CXXFLAGS := $(EXTRA_CFLAGS) $(KERNEL_DIM) -std=c++17 -DALIGNED
 
 ifdef WARNING
 CXXFLAGS += -Wall

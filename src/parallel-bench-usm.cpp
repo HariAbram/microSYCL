@@ -585,7 +585,7 @@ void reduction_with_usm(sycl::queue &Q, int size, int block_size, bool print, in
     sycl::free(sum,Q);
 }
 
-// barriers
+//barriers
 
 void group_barrier_test_usm(sycl::queue &Q, int size, int block_size, bool print, int iter, int dim)
 {

@@ -45,6 +45,7 @@ static struct option long_options[] = {
   {"map", 0, NULL, 'M'},
   {"transpose", 0, NULL, 't'},
   {"mat-add", 0, NULL, 'A'},
+  {"stencil_1", 0, NULL, 'E'},
   {0,0,0,0}
 };
 
@@ -74,12 +75,13 @@ int main(int argc, char* argv[]) {
     bool map            = false;
     bool transpose      = false;
     bool mat_add        = false;
+    bool stencil_1      = false;
 
     int vec_no = 1;
 
     int iter = 10;
 
-    while ((opt = getopt_long(argc, argv, ":s:b:v:i:h:m:r:a:e:n:w:I:p:d:T:O:C:G:S:M:t:A:", 
+    while ((opt = getopt_long(argc, argv, ":s:b:v:i:h:m:r:a:e:n:w:I:p:d:T:O:C:G:S:M:t:A:E:", 
           long_options, &option_index)) != -1 ) {
     switch(opt){
       case 's':
@@ -132,6 +134,9 @@ int main(int argc, char* argv[]) {
         break;
       case 't':
         transpose = true;
+        break;
+      case 'E':
+        stencil_1 = true;
         break;
       case 'p':
         print_system = true;
@@ -356,6 +361,10 @@ int main(int argc, char* argv[]) {
 
       
 
+    }
+    else if(stencil_1)
+    {
+      stencil_1_ndrange_usm(Q, n_row,block_size);
     }
     else if (mem_alloc)
     {

@@ -180,10 +180,11 @@ void init_sparse_arrays(TYPE *m, int size, int sparsity){
 
   for (i=0; i < size; i++) {
     for (j=i; j < size; j++) {
-      if (xorshf96()%a == 0)
+      auto k = xorshf96();
+      if (k%a == 0)
       {
-        m[i*size+j] = 1 ;
-        m[j*size+i] = 1 ;
+        m[i*size+j] = k%100 ;
+        m[j*size+i] = k%100 ;
       }
       else
       {

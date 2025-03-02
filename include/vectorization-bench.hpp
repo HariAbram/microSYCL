@@ -43,6 +43,7 @@ void cross_product(sycl::queue &Q, int size, int block_size);
 
 void spmv_csr_ndrange_usm(sycl::queue &Q, int size, int block_size);
 
-//void spmm__ndrange_usm(sycl::queue &Q, int size, int block_size);
+/*Stencil*/
+void stencil_1_ndrange_usm(sycl::queue &Q, int size, int block_size);
 
 #endif

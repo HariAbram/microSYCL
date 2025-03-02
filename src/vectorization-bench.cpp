@@ -13,6 +13,10 @@
 #define TYPE double
 #endif
 
+#ifndef ALIGNMENT
+#define ALIGNMENT 32
+#endif
+
 #ifndef OPT_BLOCK_SIZE
 #define OPT_BLOCK_SIZE 32
 #endif
@@ -61,6 +65,34 @@ bool verification_spmv (TYPE *m1, TYPE *v1 , TYPE *v2, int size)
         {
             result = false;
             return result;
+        }     
+    }
+    return result;
+
+}
+
+bool verification_stencil_1 (TYPE *m1, TYPE *m2, int size)
+{
+    bool result = true;
+
+    for (size_t i = 1; i < size-1; i++)
+    { 
+        TYPE temp = 0.0;
+        for (size_t j = 1; j < size-1; j++)
+        {
+            TYPE temp1 = m1[i*size+j];
+            TYPE temp2 = m1[(i-1)*size+j];
+            TYPE temp3 = m1[(i+1)*size+j];
+            TYPE temp4 = m1[i*size+(j-1)];
+            TYPE temp5 = m1[i*size+(j-1)];
+
+            temp = temp1 + temp2 + temp3 + temp4 + temp5;
+
+            if (temp != m2[i*size+j])
+            {
+                result = false;
+                return result;
+            }
         }     
     }
     return result;
@@ -446,10 +478,16 @@ void gemm_ndrange_usm(sycl::queue &Q, int size, int block_size)
     sycl::range<1> local{N_b};
 
     timer time;
+#ifdef ALIGNED
+    TYPE * __restrict__ m1 = sycl::aligned_alloc_shared<TYPE>(ALIGNMENT,size*size*sizeof(TYPE),Q); Q.wait();
+    TYPE * __restrict__ m2 = sycl::aligned_alloc_shared<TYPE>(ALIGNMENT,size*size*sizeof(TYPE),Q); Q.wait();
+    TYPE * __restrict__ m3 = sycl::aligned_alloc_shared<TYPE>(ALIGNMENT,size*size*sizeof(TYPE),Q); Q.wait();
 
+#else
     TYPE * __restrict__ m1 = sycl::malloc_shared<TYPE>(size*size*sizeof(TYPE),Q); Q.wait();
     TYPE * __restrict__ m2 = sycl::malloc_shared<TYPE>(size*size*sizeof(TYPE),Q); Q.wait();
     TYPE * __restrict__ m3 = sycl::malloc_shared<TYPE>(size*size*sizeof(TYPE),Q); Q.wait();
+#endif
 
     std::fill(m1,m1+size*size,1);
     std::fill(m2,m2+size*size,1);
@@ -675,9 +713,9 @@ void gemm_opt_ndrange_usm(sycl::queue &Q, int size, int block_size){
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : gemm with nd_range( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
 
-    free(m1,Q);
-    free(m2,Q);
-    free(m3,Q);
+    sycl::free(m1,Q);
+    sycl::free(m2,Q);
+    sycl::free(m3,Q);
 }
 
 ////////////////////////////////////////////////////////// outer-product
@@ -732,9 +770,9 @@ void outer_product(sycl::queue &Q, int size, int block_size)
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : outer product with ndrange ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
 
-    free(m1,Q);
-    free(v1,Q);
-    free(v2,Q);
+    sycl::free(m1,Q);
+    sycl::free(v1,Q);
+    sycl::free(v2,Q);
 }
 
 ////////////////////////////////////////////////////////// triad
@@ -786,9 +824,9 @@ void triad(sycl::queue &Q, int size, int block_size)
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : triad with ndrange ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
 
-    free(v1,Q);
-    free(v2,Q);
-    free(v3,Q);
+    sycl::free(v1,Q);
+    sycl::free(v2,Q);
+    sycl::free(v3,Q);
 
 }
 
@@ -853,9 +891,9 @@ void cross_product(sycl::queue &Q, int size, int block_size)
     auto kernel_offload_time = time.duration();
     std::cout << "Time taken : cross product with ndrange ( buff and acc ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
 
-    free(m1);
-    free(v1);
-    free(v2);
+    sycl::free(m1,Q);
+    sycl::free(v1,Q);
+    sycl::free(v2,Q);
 }
 
 ////////////////////////////////////////////////////////// SPMV
@@ -979,4 +1017,71 @@ void spmv_csr_ndrange_usm(sycl::queue &Q, int size, int block_size){
     sycl::free(v2,Q);
     sycl::free(m1,Q);
 
+}
+
+////////////////////////////////////////////////////////// stencil
+
+void stencil_1_ndrange_usm(sycl::queue &Q, int size, int block_size){
+    auto N = static_cast<size_t>(size);
+
+    auto N_b = static_cast<size_t>(block_size);
+    sycl::range<1> local{N_b};
+
+    timer time;
+#ifdef ALIGNED
+    TYPE * __restrict__ m1 = sycl::aligned_alloc_shared<TYPE>(ALIGNMENT,size*size*sizeof(TYPE),Q); Q.wait();
+    TYPE * __restrict__ m2 = sycl::aligned_alloc_shared<TYPE>(ALIGNMENT,size*size*sizeof(TYPE),Q); Q.wait();
+#else
+    TYPE * __restrict__ m1 = sycl::malloc_shared<TYPE>(size*size*sizeof(TYPE),Q); Q.wait();
+    TYPE * __restrict__ m2 = sycl::malloc_shared<TYPE>(size*size*sizeof(TYPE),Q); Q.wait();
+#endif
+    init_sparse_arrays(m1, size, 1); Q.wait();
+    std::fill(m2,m2+size*size,0.0); Q.wait();
+
+    sycl::range<2> global1 {N,N};
+    
+    sycl::range<2> local1{N_b,N_b};
+
+    time.start_timer();
+
+    Q.submit([&](sycl::handler &cgh){
+        sycl::accessor<TYPE, 2, sycl::access::mode::read_write, sycl::access::target::local>  localm1(sycl::range<2>(N, N), cgh);
+
+        cgh.parallel_for(sycl::nd_range<2>(global1, local1), [=](sycl::nd_item<2> it){
+            auto k = it.get_global_id(0);
+            auto k1 = it.get_global_id(1);
+
+            if (k == 0 )
+            {
+                localm1[k][k1] = m1[k*N+k1];
+            }
+            else if (k1 ==N)
+            {
+                localm1[k][k1] = m1[k*N+k1];
+            }
+            else if (k1 ==0)
+            {
+                localm1[k][k1] = m1[k*N+k1];
+            }
+            else if (k == N)
+            {
+                localm1[k][k1] = m1[k*N+k1];
+            }
+            else
+            {
+                localm1[k][k1] = m1[k*N+k1]+m1[(k+1)*N+k1]+m1[(k-1)*N+k1]+m1[k*N+(k1+1)]+m1[k*N+(k1-1)];
+            }
+            
+            
+        });
+    });
+    Q.wait();
+
+    time.end_timer();
+
+    auto kernel_offload_time = time.duration();
+    std::cout << "Time taken : stencil 1 with ndrange ( USM ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
+
+    sycl::free(m1,Q);
+    sycl::free(m2,Q);
 }
