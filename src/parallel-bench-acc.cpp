@@ -127,7 +127,7 @@ void range_with_buff_acc(sycl::queue &Q, int size, int dim, bool print, int iter
             std::cout << "Verification failed "
                       << "Expected value "<< 1024*iter
                       << "Final value"<< sum_r[1]
-                      <<std::endl;
+                      << std::endl;
         }
 
         if (print)
@@ -279,9 +279,9 @@ void atomics_buf_acc(sycl::queue &Q, int size, bool print, int iter)
     if (sum_r[0]!= size*iter)
     {
         std::cout << "Verification failed "
-                      << "Expected value "<< 1024*iter
-                      << "Final value"<< sum_r[0]
-                      <<std::endl;
+                  << "Expected value "<< 1024*iter
+                  << "Final value"<< sum_r[0]
+                  <<std::endl;
     }
 
     if (print)
@@ -385,9 +385,9 @@ void group_barrier_test_buff_acc(sycl::queue &Q, int size, int block_size, bool 
         if (sum_r[0]!= 1024*iter)
         {
             std::cout << "Verification failed "
-                    << "Expected value "<< 1024*iter
-                    << "Final value"<< sum_r[0]
-                    <<std::endl;
+                      << "Expected value "<< 1024*iter
+                      << "Final value"<< sum_r[0]
+                      << std::endl;
         }
         if (print)
         {
@@ -469,9 +469,9 @@ void subgroup_barrier_test_buff_acc(sycl::queue &Q, int size, int block_size, bo
         if (sum_r[0]!= 1024*iter)
         {
             std::cout << "Verification failed "
-                    << "Expected value "<< 1024*iter
-                    << "Final value"<< sum_r[0]
-                    << std::endl;
+                      << "Expected value "<< 1024*iter
+                      << "Final value"<< sum_r[0]
+                      << std::endl;
         }
         if (print)
         {
@@ -497,9 +497,9 @@ void subgroup_barrier_test_buff_acc(sycl::queue &Q, int size, int block_size, bo
         if (sum_r[0]!= 1024*iter)
         {
             std::cout << "Verification failed "
-                    << "Expected value "<< 1024*iter
-                    << "Final value"<< sum_r[0]
-                    << std::endl;
+                      << "Expected value "<< 1024*iter
+                      << "Final value"<< sum_r[0]
+                      << std::endl;
         }
         if (print)
         {

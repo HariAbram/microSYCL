@@ -526,9 +526,9 @@ void atomics_usm(sycl::queue &Q, int size, bool print, int iter)
     if (sum[0]!= size*iter)
     {
         std::cout << "Verification failed "
-                      << "Expected value "<< 1024*iter
-                      << "Final value"<< sum[0]
-                      <<std::endl;
+                  << "Expected value "<< 1024*iter
+                  << "Final value"<< sum[0]
+                  <<  std::endl;
     }
 
     if (print)
@@ -625,9 +625,9 @@ void group_barrier_test_usm(sycl::queue &Q, int size, int block_size, bool print
         if (sum[0]!= 1024*iter)
         {
             std::cout << "Verification failed "
-                    << "Expected value "<< 1024*iter
-                    << "Final value"<< sum[0]
-                    <<std::endl;
+                      << "Expected value "<< 1024*iter
+                      << "Final value"<< sum[0]
+                      <<  std::endl;
         }
 
         if (print)
@@ -711,9 +711,9 @@ void subgroup_barrier_test_usm(sycl::queue &Q, int size, int block_size, bool pr
         if (sum[0]!= 1024*iter)
         {
             std::cout << "Verification failed "
-                    << "Expected value "<< 1024*iter
-                    << "Final value"<< sum[0]
-                    <<  std::endl;
+                      << "Expected value "<< 1024*iter
+                      << "Final value"<< sum[0]
+                      <<  std::endl;
         }
 
         if (print)
@@ -744,9 +744,9 @@ void subgroup_barrier_test_usm(sycl::queue &Q, int size, int block_size, bool pr
         if (sum[0]!= 1024*iter)
         {
             std::cout << "Verification failed "
-                    << "Expected value "<< 1024*iter
-                    << "Final value"<< sum[0]
-                    <<  std::endl;
+                      << "Expected value "<< 1024*iter
+                      << "Final value"<< sum[0]
+                      <<  std::endl;
         }
 
         if (print)
