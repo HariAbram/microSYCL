@@ -9,7 +9,7 @@
 *.o
 *.so
 *.json
-/bin/*
+#/bin/*
 *.data
 /parallel_micro
 *.old
