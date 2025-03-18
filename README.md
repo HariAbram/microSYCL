@@ -18,7 +18,7 @@ make SYCL_IMPL=oneapi|intel-llvm|<empty=acpp> BACKEND=omp|<empty=ocl> ARCH=x86|a
 ```
 Depending on the Implementation choosen, paths to all the the binaries and libraries should be added to the standard environment variables, such as $PATH and $LD_LIBRARY_PATH
 
-For optimal performance set `OMP_PROC_BIND` environment variable is set to true. 
+For optimal performance `OMP_PROC_BIND` environment variable is set to true. This is applicable only when using OpenMP backend.
 
 ### Example
 
