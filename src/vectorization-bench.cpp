@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <chrono>
 #include <vector>
-#include <omp.h>
+//#include <omp.h>
 
 #ifndef TYPE
 #define TYPE double

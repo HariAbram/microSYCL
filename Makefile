@@ -99,7 +99,7 @@ ifeq ($(OPTIMIZE),yes)
 endif
 
 ifeq ($(SYCL_IMPL), oneapi)
-  CXXFLAGS += -fsycl -qopenmp -DDPCPP
+  CXXFLAGS += -fsycl -qopenmp -DDPCPP # -fsycl-targets=spir64_x86_64
 else ifeq ($(SYCL_IMPL), intel-llvm)
   CXXFLAGS += -fsycl -fopenmp -DDPCPP
 else 
