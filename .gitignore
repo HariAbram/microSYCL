@@ -27,7 +27,7 @@
 *.rar
 *.tar
 *.zip
-
+*.ll
 
 
 # Logs and databases #

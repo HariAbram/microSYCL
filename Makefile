@@ -103,7 +103,7 @@ ifeq ($(SYCL_IMPL), oneapi)
 else ifeq ($(SYCL_IMPL), intel-llvm)
   CXXFLAGS += -fsycl -fopenmp -DDPCPP
 else 
-  CXXFLAGS += -DHIPSYCL --acpp-platform=cpu  -fopenmp -DACPP 
+  CXXFLAGS += -DHIPSYCL --acpp-platform=cpu  -fopenmp -DACPP
   ifeq ($(BACKEND), omp)
     CXXFLAGS += --acpp-targets=omp.accelerated 
   else 
