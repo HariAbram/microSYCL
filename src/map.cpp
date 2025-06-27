@@ -434,7 +434,7 @@ void ndrange_usm_gemm_strided(sycl::queue &Q, int size, int block_size, const si
     time.end_timer();
 
     auto kernel_offload_time = time.duration();
-    std::cout << "Time taken : strided gemm with batch " << batch << " with nd_range( with usm ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
+    std::cout << "Time taken : strided gemm with batch " << batch << " using nd_range( with usm ) "<< kernel_offload_time/(1E9) << " seconds\n" << std::endl;
 
     sycl::free(m1,Q);
     sycl::free(m2,Q);
