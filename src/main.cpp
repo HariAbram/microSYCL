@@ -194,6 +194,8 @@ int main(int argc, char* argv[]) {
                                         " --map             : test for different memory access patterns \n"
                                         "       --transpose : with transpose \n"
                                         "       --mat-add   : with matrix addition \n"
+                                        " --strided-gemm    : execute strided gemm\n"
+                                        "       --batch     : batch size \n"
                                         "-------micro-benchmarks--------\n"
                                         " --mem-alloc       : to alloc memory using SYCL and standard malloc \n"
                                         " --reduction       : to test reduction using atomics and sycl reduction construct\n"
