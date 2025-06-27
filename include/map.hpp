@@ -20,5 +20,7 @@ void range_usm_matrix_transpose(sycl::queue &Q, int size, int dim, int iter, boo
 
 void ndrange_usm_matrix_transpose(sycl::queue &Q, int size, int dim, int block_size, int iter, bool print);
 
+/*stride access pattern gemm*/
+void ndrange_usm_gemm_strided(sycl::queue &Q, int size, int block_size, const size_t batch);
 
 #endif

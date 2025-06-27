@@ -46,6 +46,8 @@ static struct option long_options[] = {
   {"transpose", 0, NULL, 't'},
   {"mat-add", 0, NULL, 'A'},
   {"stencil_1", 0, NULL, 'E'},
+  {"strided-gemm", 0, NULL, 'B'},
+  {"batch", 1, NULL, 'c'},
   {0,0,0,0}
 };
 
@@ -55,6 +57,7 @@ int main(int argc, char* argv[]) {
     n_row = n_col = 32; // deafult matrix size
     int opt, option_index=0;
     int block_size = 16;
+    size_t batch = 4;
 
 
     bool gemv           = false;
@@ -76,12 +79,13 @@ int main(int argc, char* argv[]) {
     bool transpose      = false;
     bool mat_add        = false;
     bool stencil_1      = false;
+    bool strided_gemm   = false;
 
     int vec_no = 1;
 
     int iter = 10;
 
-    while ((opt = getopt_long(argc, argv, ":s:b:v:i:h:m:r:a:e:n:w:I:p:d:T:O:C:G:S:M:t:A:E:", 
+    while ((opt = getopt_long(argc, argv, ":s:b:v:i:h:m:r:a:e:n:w:I:p:d:T:O:C:G:S:M:t:A:E:B:c:", 
           long_options, &option_index)) != -1 ) {
     switch(opt){
       case 's':
@@ -89,6 +93,9 @@ int main(int argc, char* argv[]) {
         break;
       case 'b':
         block_size = atoi(optarg);
+        break;
+      case 'c':
+        batch = atoi(optarg);
         break;
       case 'v':
         gemv = true;
@@ -131,6 +138,9 @@ int main(int argc, char* argv[]) {
         break;
       case 'A':
         mat_add = true;
+        break;
+      case 'B':
+        strided_gemm = true;
         break;
       case 't':
         transpose = true;
@@ -358,13 +368,14 @@ int main(int argc, char* argv[]) {
         ndrange_usm_matrix_addition(Q, n_row, 3, block_size, iter, true);
 
       }
-
-      
-
     }
     else if(stencil_1)
     {
       stencil_1_ndrange_usm(Q, n_row,block_size);
+    }
+    else if (strided_gemm)
+    {
+      ndrange_usm_gemm_strided(Q, n_col, block_size, batch);
     }
     else if (mem_alloc)
     {
