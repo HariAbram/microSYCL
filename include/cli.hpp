@@ -1,5 +1,5 @@
 #ifndef CLI_HPP
-#define CLIz_HPP
+#define CLI_HPP
 
 
 #pragma once
