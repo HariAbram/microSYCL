@@ -36,115 +36,98 @@ unsigned long t;
   return z;
 }
 
-
-void print_results(double *timings, int iter, int size, std::string benchmark, int dim, int bench)
+void print_results(double* timings, int iter, int size,
+                   std::string benchmark, int dim, int bench)
 {
-  /*
-  bench = 1 - memory alloc
-          2 - parallel
-          3 - atomics  
-          4 - barriers
-  */
-  std::sort(timings, timings+iter);
-  double median = timings[iter/2];
+  // timings are assumed in nanoseconds (ns), length = iter
+  if (iter <= 0 || timings == nullptr) return;
 
-  auto minmax = std::minmax_element(timings, timings+iter);
+  // sort for median/min/max
+  std::sort(timings, timings + iter);
+  const double min_ns = timings[0];
+ const double max_ns = timings[iter - 1];
 
-  double bandwidth = 1.0E-6 * 2 *size*size*sizeof(TYPE) / (*minmax.first*1E-9);
+  // median (even/odd)
+  double median_ns = 0.0;
+  if (iter & 1) {
+    median_ns = timings[iter / 2];
+  } else {
+    median_ns = 0.5 * (timings[iter / 2 - 1] + timings[iter / 2]);
+  }
 
-  double average = std::accumulate(timings, timings+iter, 0.0) / (double)(iter);
+  // Welford for mean & stdev (numerically stable)
+  double mean_ns = 0.0, m2 = 0.0;
+  for (int i = 0; i < iter; ++i) {
+    const double x = timings[i];
+    const double delta = x - mean_ns;
+    mean_ns += delta / static_cast<double>(i + 1);
+    m2 += delta * (x - mean_ns);
+  }
+  const double var_ns = (iter > 1) ? (m2 / static_cast<double>(iter - 1)) : 0.0;
+  const double stdev_ns = std::sqrt(var_ns);
 
-  auto variance_func = [&average, &iter](TYPE accumulator, const TYPE& val) {
-        return accumulator + ((val - average)*(val - average) / (iter - 1));
-    };
+  // seconds conversions once
+  const double min_s    = min_ns    * 1e-9;
+  const double max_s    = max_ns    * 1e-9;
+  const double median_s = median_ns * 1e-9;
+  const double mean_s   = mean_ns   * 1e-9;
+  const double stdev_s  = stdev_ns  * 1e-9;
 
-  auto var = std::accumulate(timings, timings+iter, 0.0, variance_func);
+  // bandwidth (MB/s) for bench==1 when it’s a bandwidth case (your rule)
+  // bytes moved = 2 * size * size * sizeof(TYPE)
+  const bool is_alloc_ms =
+      (benchmark == "Host memory alloc(ms)"   ||
+       benchmark == "Shared memory alloc(ms)" ||
+       benchmark == "Device memory alloc(ms)" ||
+       benchmark == "std memory alloc(ms)");
 
-  auto std_dev = std::sqrt(var);
+  const int W = 24; // column width
+  std::cout.setf(std::ios::fixed);
+  std::cout << std::left << std::setw(W) << benchmark;
 
-  if (bench == 1 )
-  {
-    if (benchmark == "Host memory alloc(ms)" || benchmark == "Shared memory alloc(ms)" || benchmark == "Device memory alloc(ms)" || benchmark == "std memory alloc(ms)")
-    {
+  if (bench == 1) {
+    if (is_alloc_ms) {
+      // Allocation timings printed in milliseconds to match the label
+      const double min_ms    = min_ns    * 1e-6;
+      const double max_ms    = max_ns    * 1e-6;
+      const double median_ms = median_ns * 1e-6;
+      const double mean_ms   = mean_ns   * 1e-6;
+      const double stdev_ms  = stdev_ns  * 1e-6;
       std::cout
-      << std::left << std::setw(24) << benchmark
-      << std::left << std::setw(24) << " "
-      << std::left << std::setw(24) << std::setprecision(6) << *minmax.first*1E-6
-      << std::left << std::setw(24) << std::setprecision(6) << *minmax.second*1E-6
-      << std::left << std::setw(24) << std::setprecision(6) << median*1E-6
-      << std::left << std::setw(24) << std::setprecision(6) << average*1E-6
-      << std::left << std::setw(24) << std::setprecision(6) << std_dev*1E-6
-      << std::endl;
+        << std::left << std::setw(W) << " "
+        << std::left << std::setw(W) << std::setprecision(6) << min_ms
+        << std::left << std::setw(W) << std::setprecision(6) << max_ms
+        << std::left << std::setw(W) << std::setprecision(6) << median_ms
+        << std::left << std::setw(W) << std::setprecision(6) << mean_ms
+        << std::left << std::setw(W) << std::setprecision(6) << stdev_ms
+        << '\n';
+    } else {
+      const double bytes = 2.0 * static_cast<double>(size) * static_cast<double>(size)
+                           * static_cast<double>(sizeof(TYPE));
+      const double bandwidth_MBps = (min_s > 0.0) ? (1e-6 * bytes / min_s) : 0.0;
+      std::cout
+        << std::left << std::setw(W) << std::setprecision(3) << bandwidth_MBps
+        << std::left << std::setw(W) << std::setprecision(6) << min_s
+        << std::left << std::setw(W) << std::setprecision(6) << max_s
+        << std::left << std::setw(W) << std::setprecision(6) << median_s
+        << std::left << std::setw(W) << std::setprecision(6) << mean_s
+        << std::left << std::setw(W) << std::setprecision(6) << stdev_s
+        << '\n';
     }
-    else
-    {
-      std::cout
-      << std::left << std::setw(24) << benchmark
-      << std::left << std::setw(24) << std::setprecision(3) << bandwidth
-      << std::left << std::setw(24) << std::setprecision(6) << *minmax.first*1E-9
-      << std::left << std::setw(24) << std::setprecision(6) << *minmax.second*1E-9
-      << std::left << std::setw(24) << std::setprecision(6) << median*1E-9
-      << std::left << std::setw(24) << std::setprecision(6) << average*1E-9
-      << std::left << std::setw(24) << std::setprecision(6) << std_dev*1E-9
-      << std::endl;
+    return;
+  }
 
-    } 
-    
-  }
-  else if (bench == 2)
-  {
-    std::cout
-    << std::left << std::setw(24) << benchmark
-    << std::left << std::setw(24) << dim
-    << std::left << std::setw(24) << std::setprecision(6) << *minmax.first*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << *minmax.second*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << median*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << average*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << std_dev*1E-9
-    << std::endl
-    << std::fixed;
-  }
-  else if (bench == 3)
-  {
-    std::cout
-    << std::left << std::setw(24) << benchmark
-    << std::left << std::setw(24) << dim
-    << std::left << std::setw(24) << std::setprecision(6) << *minmax.first*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << *minmax.second*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << median*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << average*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << std_dev*1E-9
-    << std::endl
-    << std::fixed;
-  }
-  else if (bench == 4)
-  {
-    std::cout
-    << std::left << std::setw(24) << benchmark
-    << std::left << std::setw(24) << dim
-    << std::left << std::setw(24) << std::setprecision(6) << *minmax.first*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << *minmax.second*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << median*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << average*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << std_dev*1E-9
-    << std::endl
-    << std::fixed;
-  }  
-  else if (bench == 5)
-  {
-    std::cout
-    << std::left << std::setw(24) << benchmark
-    << std::left << std::setw(24) << dim
-    << std::left << std::setw(24) << std::setprecision(6) << *minmax.first*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << *minmax.second*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << median*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << average*1E-9
-    << std::left << std::setw(24) << std::setprecision(6) << std_dev*1E-9
-    << std::endl
-    << std::fixed;
-  }  
-
+  // benches 2..5 share the same row shape (Benchmark, Dimension, times in seconds)
+  std::cout
+    << std::left << std::setw(W) << dim
+    << std::left << std::setw(W) << std::setprecision(6) << min_s
+    << std::left << std::setw(W) << std::setprecision(6) << max_s
+    << std::left << std::setw(W) << std::setprecision(6) << median_s
+    << std::left << std::setw(W) << std::setprecision(6) << mean_s
+    << std::left << std::setw(W) << std::setprecision(6) << stdev_s
+    << '\n';
 }
+
 
 void delay_time(int size)
 {

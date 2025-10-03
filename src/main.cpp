@@ -8,6 +8,8 @@
 #include <chrono>
 #include <sys/time.h>
 #include <algorithm>
+#include <functional>
+#include <array>
 
 #ifndef TYPE
 #define TYPE double
@@ -20,36 +22,7 @@
 #include "../include/micro-bench-omp.hpp"
 #include "../include/utils.hpp"
 #include "../include/map.hpp"
-
-static struct option long_options[] = {
-  /* name, has_arg, flag, val */
-  {"block size", 1, NULL, 'b'},
-  {"size", 1, NULL, 's'},
-  {"gemv", 0, NULL, 'v'},
-  {"gemm", 0, NULL, 'm'},
-  {"gemm-opt", 0, NULL, 'G'},
-  {"mem-alloc", 0, NULL, 'a'},
-  {"reduction", 0, NULL, 'r'},
-  {"range", 0, NULL, 'e'},
-  {"ndrange", 0, NULL, 'n'},
-  {"barrier", 0, NULL, 'w'},
-  {"print-system", 0, NULL, 'p'},
-  {"delay", 0, NULL, 'd'},
-  {"index_m", 1, NULL, 'i'},
-  {"iterations", 1, NULL, 'I'},
-  {"help", 0, NULL, 'h'},
-  {"triad", 0, NULL, 'T'},
-  {"outer-product", 0, NULL, 'O'},
-  {"cross-product", 0, NULL, 'C'},
-  {"spmv", 0, NULL, 'S'},
-  {"map", 0, NULL, 'M'},
-  {"transpose", 0, NULL, 't'},
-  {"mat-add", 0, NULL, 'A'},
-  {"stencil_1", 0, NULL, 'E'},
-  {"strided-gemm", 0, NULL, 'B'},
-  {"batch", 1, NULL, 'c'},
-  {0,0,0,0}
-};
+#include "../include/cli.hpp"
 
 int main(int argc, char* argv[]) {
 
@@ -58,7 +31,6 @@ int main(int argc, char* argv[]) {
     int opt, option_index=0;
     int block_size = 16;
     size_t batch = 4;
-
 
     bool gemv           = false;
     bool gemm           = false;
@@ -82,101 +54,82 @@ int main(int argc, char* argv[]) {
     bool strided_gemm   = false;
 
     int vec_no = 1;
-
     int iter = 10;
 
-    while ((opt = getopt_long(argc, argv, ":s:b:v:i:h:m:r:a:e:n:w:I:p:d:T:O:C:G:S:M:t:A:E:B:c:", 
-          long_options, &option_index)) != -1 ) {
-    switch(opt){
-      case 's':
-        n_col=n_row= atoi(optarg);
-        break;
-      case 'b':
-        block_size = atoi(optarg);
-        break;
-      case 'c':
-        batch = atoi(optarg);
-        break;
-      case 'v':
-        gemv = true;
-        break;
-      case 'm':
-        gemm = true;
-        break;
-      case 'r':
-        reduction = true;
-        break;
-      case 'e':
-        range = true;
-        break;
-      case 'n':
-        nd_range = true;
-        break;
-      case 'a':
-        mem_alloc = true;
-        break;
-      case 'w':
-        barrier = true;
-        break;
-      case 'T':
-        tri = true;
-        break;
-      case 'O':
-        out_pro = true;
-        break;
-      case 'G':
-        gemm_opt = true;
-        break;
-      case 'C':
-        cro_pro = true;
-        break;
-      case 'S':
-        spmv = true;
-        break;
-      case 'M':
-        map = true;
-        break;
-      case 'A':
-        mat_add = true;
-        break;
-      case 'B':
-        strided_gemm = true;
-        break;
-      case 't':
-        transpose = true;
-        break;
-      case 'E':
-        stencil_1 = true;
-        break;
-      case 'p':
-        print_system = true;
-        break;
-      case 'd':
-        delay = true;
-        break;
-      case 'i':
-        vec_no = atoi(optarg);
-        break;
-      case 'I':
-        iter = atoi(optarg);
-        break;
-      case 'h':
-        help = true;
-        break;
-      case '?':
-        fprintf(stderr, "invalid option\n");
-        break;
-      case ':':
-        fprintf(stderr, "missing argument\n");
-        break;
-      default:
-        fprintf(stderr, "Usage: %s [-v] [-s matrix_size|-i input_file]\n",
-            argv[0]);
-        exit(EXIT_FAILURE);
-        }
-    }
+  // ---- CLI parsing (tolerates --flag, --flag=val, --flag val, and short aliases) ----
+    cli::Parser P;
+    // options that take values (canonical long names; spaces/underscores are normalized to '-')
+    for (auto k : {"size","block-size","batch","index-m","iterations","warmup","repeat","label"})
+      P.add_value_opt(k);
+    // short aliases -> long names
+    P.add_alias("-s","--size");
+    P.add_alias("-b","--block-size");
+    P.add_alias("-c","--batch");
+    P.add_alias("-i","--index-m");
+    P.add_alias("-I","--iterations");
+    P.add_alias("-h","--help");
+    P.add_alias("-m","--gemm");
+    P.add_alias("-v","--gemv");
+    P.add_alias("-G","--gemm-opt");
+    P.add_alias("-a","--mem-alloc");
+    P.add_alias("-r","--reduction");
+    P.add_alias("-e","--range");
+    P.add_alias("-n","--ndrange");
+    P.add_alias("-w","--barrier");
+    P.add_alias("-p","--print-system");
+    P.add_alias("-d","--delay");
+    P.add_alias("-T","--triad");
+    P.add_alias("-O","--outer-product");
+    P.add_alias("-C","--cross-product");
+    P.add_alias("-S","--spmv");
+    P.add_alias("-M","--map");
+    P.add_alias("-t","--transpose");
+    P.add_alias("-A","--mat-add");
+    P.add_alias("-E","--stencil-1");
+    P.add_alias("-B","--strided-gemm");
+    // extra from benchmarking patch (optional)
+    // --csv, --json, --warmup, --repeat, --label handled later if you kept them
 
-    if ( (optind < argc) || (optind == 1)) {
+    P.parse(argc, argv);
+
+    // booleans
+    gemm         = P.has("gemm");
+    gemm_opt     = P.has("gemm-opt");
+    gemv         = P.has("gemv");
+    spmv         = P.has("spmv");
+    tri          = P.has("triad");
+    out_pro      = P.has("outer-product");
+    cro_pro      = P.has("cross-product");
+    map          = P.has("map");
+    transpose    = P.has("transpose");
+    mat_add      = P.has("mat-add");
+    strided_gemm = P.has("strided-gemm");
+    mem_alloc    = P.has("mem-alloc");
+    reduction    = P.has("reduction");
+    range        = P.has("range");
+    nd_range     = P.has("ndrange");
+    barrier      = P.has("barrier");
+    print_system = P.has("print-system");
+    help         = P.has("help");
+    delay        = P.has("delay");
+
+    // integers
+    n_col = n_row = P.get<int>("size", n_row);
+    block_size    = P.get<int>("block-size", block_size);
+    batch         = P.get<size_t>("batch", batch);
+    vec_no        = P.get<int>("index-m", vec_no);
+    iter          = P.get<int>("iterations", iter);
+
+    // (optional benchmarking extras; ignore if you didn’t add them)
+    unsigned warmup = P.get<unsigned>("warmup", 3u);
+    unsigned repeat = P.get<unsigned>("repeat", 10u);
+    std::string bench_label = P.get("label", std::string{});
+    enum class Out { Text, CSV, JSON }; Out out = Out::Text;
+    if (P.has("csv"))  out = Out::CSV;
+    if (P.has("json")) out = Out::JSON;
+    
+
+    if ( argc <= 1) {
       fprintf(stderr, "No input parameters specified, use --help to see how to use this binary\n");
       exit(EXIT_FAILURE);
     } 
@@ -219,404 +172,206 @@ int main(int argc, char* argv[]) {
 
     LIKWID_MARKER_INIT;
 
+    // ---- tiny helper to register + run a benchmark with a LIKWID marker ----
+    auto with_marker = [](const char* name, auto&& fn) {
+      #pragma omp parallel
+      {
+        LIKWID_MARKER_REGISTER(name);
+      }
+      fn();
+    };
+
     if (print_system)
     {
       std::cout << "running on ..."<< std::endl;
       std::cout << Q.get_device().get_info<sycl::info::device::name>()<<"\n"<<std::endl;
     }
-    if (gemm)
-    {
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("GEMM");
-      }
-      if (vec_no==1)
-      {
-        gemm_range_usm(Q, n_row);
-      }
-      else if (vec_no == 2)
-      {
-        gemm_range_buff_acc(Q, n_row);
-      }
-      else if (vec_no == 3)
-      {
-        gemm_ndrange_usm(Q, n_row, block_size);
-      }
-      else if (vec_no == 4)
-      {
-        gemm_ndrange_buff_acc(Q, n_row, block_size);
-      }
+
+    // ---- table-driven dispatch (flags -> {marker, callable}) -----------------
+    using Fn = std::function<void()>;
+    auto clamp_mode = [&](int m){ return std::min(4, std::max(1, m)); };
+
+    std::array<Fn,5> gemm_variants{
+      Fn{}, // 0 unused
+      Fn{[&]{ gemm_range_usm(Q, n_row); }},
+      Fn{[&]{ gemm_range_buff_acc(Q, n_row); }},
+      Fn{[&]{ gemm_ndrange_usm(Q, n_row, block_size); }},
+      Fn{[&]{ gemm_ndrange_buff_acc(Q, n_row, block_size); }},
+    };
+    std::array<Fn,5> gemv_variants{
+      Fn{},
+      Fn{[&]{ gemv_range_usm(Q, n_row); }},
+      Fn{[&]{ gemv_range_buff_acc(Q, n_row); }},
+      Fn{[&]{ gemv_ndrange_usm(Q, n_row, block_size); }},
+      Fn{[&]{ gemv_ndrange_buff_acc(Q, n_row, block_size); }},
+    };
+
+    struct Cmd { bool enabled; const char* marker; Fn fn; };
+    std::vector<Cmd> cmds = {
+      { gemm,      "GEMM",        [&]{ gemm_variants.at(clamp_mode(vec_no))(); } },
+      { gemm_opt,  "GEMM-OPT",    [&]{ gemm_opt_ndrange_usm(Q, n_row, block_size); } },
+      { gemv,      "GEMV",        [&]{ gemv_variants.at(clamp_mode(vec_no))(); } },
+      { spmv,      "SPMV",        [&]{ spmv_csr_ndrange_usm(Q, n_row, block_size); } },
+      { tri,       "TRIAD",       [&]{ triad(Q, n_row, block_size); } },
+      { out_pro,   "OUT-PRODUCT", [&]{ outer_product(Q, n_row, block_size); } },
+      { cro_pro,   "CROSS-PROD",  [&]{ cross_product(Q, n_row, block_size); } },
+      { stencil_1, "STENCIL-1",   [&]{ stencil_1_ndrange_usm(Q, n_row, block_size); } },
+      { strided_gemm, "STRIDED-GEMM", [&]{ ndrange_usm_gemm_strided(Q, n_col, block_size, batch); } },
+      // composite "report-style" commands (no single marker, they print tables themselves)
+      { map,       "MAP",         [&]{
+          std::cout
+            << std::left << std::setw(24) << "Benchmark"
+            << std::left << std::setw(24) << "Dimension"
+            << std::left << std::setw(24) << "Min (sec)"
+            << std::left << std::setw(24) << "Max"
+            << std::left << std::setw(24) << "Median"
+            << std::left << std::setw(24) << "Mean"
+            << std::left << std::setw(24) << "std_dev" << std::endl
+            << std::fixed;
+          if (transpose) {
+            range_usm_matrix_transpose(Q, n_row, 2, 3,   false);
+            range_usm_matrix_transpose(Q, n_row, 2, iter,true);
+            ndrange_usm_matrix_transpose(Q, n_row, 2, block_size, 3,    false);
+            ndrange_usm_matrix_transpose(Q, n_row, 2, block_size, iter, true);
+          } else if (mat_add) {
+            for (int dim : {1,2,3}) {
+              range_usm_matrix_addition(Q, n_row, dim, 3,    false);
+              range_usm_matrix_addition(Q, n_row, dim, iter, true);
+            }
+            for (int dim : {1,2,3}) {
+              ndrange_usm_matrix_addition(Q, n_row, dim, block_size, 3,    false);
+              ndrange_usm_matrix_addition(Q, n_row, dim, block_size, iter, true);
+            }
+          }
+        } },
+      { mem_alloc, "MEM-ALLOC",   [&]{
+          std::cout
+            << std::left << std::setw(24) << "Benchmark"
+            << std::left << std::setw(24) << "MBytes/sec"
+            << std::left << std::setw(24) << "Min (sec)"
+            << std::left << std::setw(24) << "Max"
+            << std::left << std::setw(24) << "Median"
+            << std::left << std::setw(24) << "Mean"
+            << std::left << std::setw(24) << "std_dev" << std::endl
+            << std::fixed;
+          host_memory_alloc(Q, n_row,  block_size, false, 3);
+          with_marker("host_memory_alloc", [&]{ host_memory_alloc(Q, n_row,  block_size, true, iter); });
+          shared_memory_alloc(Q, n_row,  block_size,false, 3);
+          with_marker("shared_memory_alloc", [&]{ shared_memory_alloc(Q, n_row,  block_size,true, iter); });
+          device_memory_alloc(Q, n_row,  block_size,false, 3);
+          with_marker("device_memory_alloc", [&]{ device_memory_alloc(Q, n_row,  block_size,true, iter); });
+          memory_alloc(Q, n_row, block_size , false, 3);
+          memory_alloc(Q, n_row, block_size , true,  iter);
+          std_memory_alloc(n_row, 3,   false);
+          std_memory_alloc(n_row, iter,true);
+        } },
+      { reduction, "REDUCTION",   [&]{
+          std::cout
+            << std::left << std::setw(24) << "Benchmark"
+            << std::left << std::setw(24) << "Dimension"
+            << std::left << std::setw(24) << "Min (sec)"
+            << std::left << std::setw(24) << "Max"
+            << std::left << std::setw(24) << "Median"
+            << std::left << std::setw(24) << "Mean"
+            << std::left << std::setw(24) << "std_dev" << std::endl
+            << std::fixed;
+          atomics_usm(Q, n_row, false, 3);  atomics_usm(Q, n_row, true,  iter);
+          atomics_buf_acc(Q, n_row, false, 3); atomics_buf_acc(Q, n_row, true,  iter);
+          atomics_omp(n_row, false, 3);     atomics_omp(n_row, true,  iter);
+          with_marker("reduction_usm",     [&]{ reduction_with_usm(Q, n_row,  block_size, true,  iter); });
+          with_marker("reduction_buf_acc", [&]{ reduction_with_buf_acc(Q, n_row,  block_size, true,  iter); });
+          with_marker("reduction_omp",     [&]{ reduction_omp(n_row, true,  iter); });
+        } },
+      { range,     "RANGE",       [&]{
+          std::cout
+            << std::left << std::setw(24) << "Benchmark"
+            << std::left << std::setw(24) << "Dimension"
+            << std::left << std::setw(24) << "Min (sec)"
+            << std::left << std::setw(24) << "Max"
+            << std::left << std::setw(24) << "Median"
+            << std::left << std::setw(24) << "Mean"
+            << std::left << std::setw(24) << "std_dev" << std::endl
+            << std::fixed;
+          range_with_usm(Q, n_row, 1,false, 3); range_with_usm(Q, n_row, 1,true, iter);
+          range_with_usm(Q, n_row, 2,false, 3); range_with_usm(Q, n_row, 2,true, iter);
+          range_with_buff_acc(Q, n_row ,1,false, 3); range_with_buff_acc(Q, n_row ,1,true, iter);
+          range_with_buff_acc(Q, n_row ,2,false, 3); range_with_buff_acc(Q, n_row ,2,true, iter);
+          parallel_for_omp(n_row, false, 3); parallel_for_omp(n_row, true, iter);
+          parallel_for_omp_nested(n_row, false, 3); parallel_for_omp_nested(n_row, true, iter);
+        } },
+      { nd_range,  "ND-RANGE",    [&]{
+          std::cout
+            << std::left << std::setw(24) << "Benchmark"
+            << std::left << std::setw(24) << "Dimension"
+           << std::left << std::setw(24) << "Min (sec)"
+            << std::left << std::setw(24) << "Max"
+            << std::left << std::setw(24) << "Median"
+            << std::left << std::setw(24) << "Mean"
+            << std::left << std::setw(24) << "std_dev" << std::endl
+            << std::fixed;
+          nd_range_with_usm(Q, n_row, block_size ,1, false, 3);
+          nd_range_with_usm(Q, n_row, block_size ,1, true,  iter);
+          nd_range_with_usm(Q, n_row, block_size ,2, false, 3);
+          nd_range_with_usm(Q, n_row, block_size ,2, true,  iter);
+          nd_range_with_buff_acc(Q, n_row, block_size ,1, false, 3);
+          nd_range_with_buff_acc(Q, n_row, block_size ,1, true,  iter);
+          nd_range_with_buff_acc(Q, n_row, block_size ,2, false, 3);
+          nd_range_with_buff_acc(Q, n_row, block_size ,2, true,  iter);
+          parallel_for_omp(n_row, false, 3); parallel_for_omp(n_row, true, iter);
+         parallel_for_omp_nested(n_row, false, 3); parallel_for_omp_nested(n_row, true, iter);
+        } },
+      { barrier,   "BARRIER",     [&]{
+          std::cout
+            << std::left << std::setw(24) << "Benchmark"
+            << std::left << std::setw(24) << "Dimension"
+            << std::left << std::setw(24) << "Min (sec)"
+            << std::left << std::setw(24) << "Max"
+            << std::left << std::setw(24) << "Median"
+            << std::left << std::setw(24) << "Mean"
+            << std::left << std::setw(24) << "std_dev" << std::endl
+            << std::fixed;
+          for (int dim : {1,2}) {
+            group_barrier_test_usm(Q, n_row, block_size, false, 3, dim);
+            group_barrier_test_usm(Q, n_row, block_size, true,  iter, dim);
+            group_barrier_test_buff_acc(Q, n_row,  block_size, false, 3, dim);
+            group_barrier_test_buff_acc(Q, n_row,  block_size, true,  iter, dim);
+            subgroup_barrier_test_usm(Q, n_row, block_size, false, 3, dim);
+            subgroup_barrier_test_usm(Q, n_row, block_size, true,  iter, dim);
+            subgroup_barrier_test_buff_acc(Q, n_row, block_size, false, 3, dim);
+            subgroup_barrier_test_buff_acc(Q, n_row, block_size, true,  iter, dim);
+          }
+          barrier_test_omp(n_row, false, 3);
+          barrier_test_omp(n_row, true,  iter);
+        } },
+      { delay,     "DELAY",       [&]{ delay_time(n_row); } },
+    };
+
+    // ensure mutual exclusivity (one primary flag) and pick it
+    const auto enabled_cnt = std::count_if(cmds.begin(), cmds.end(),
+      [](const Cmd& c){ return c.enabled; });
+    if (enabled_cnt == 0) {
+      fprintf(stderr, "No input parameters specified, use --help to see how to use this binary\n");
+      LIKWID_MARKER_CLOSE; return 0;
     }
-    else if (gemm_opt)
-    {
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("GEMM-OPT");
-      }
-      gemm_opt_ndrange_usm(Q, n_row, block_size);
+    if (enabled_cnt > 1) {
+      fprintf(stderr, "Multiple actions selected; please choose exactly one primary benchmark flag.\n");
+      LIKWID_MARKER_CLOSE; return 1;
     }
-    else if (gemv)
-    {
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("GEMV");
-      }
-      if (vec_no==1)
-      {
-        gemv_range_usm(Q, n_row);
-      }
-      else if (vec_no == 2)
-      {
-        gemv_range_buff_acc(Q, n_row);
-      }
-      else if (vec_no == 3)
-      {
-        gemv_ndrange_usm(Q, n_row, block_size);
-      }
-      else if (vec_no == 4)
-      {
-        gemv_ndrange_buff_acc(Q, n_row, block_size);
-      }
+    
+    const auto it = std::find_if(cmds.begin(), cmds.end(),
+      [](const Cmd& c){ return c.enabled; });
+    // run (wrap with marker if it has one and it's a single-kernel thing)
+    if (it->marker && std::string(it->marker) != "MAP"
+        && std::string(it->marker) != "MEM-ALLOC"
+        && std::string(it->marker) != "REDUCTION"
+        && std::string(it->marker) != "RANGE"
+        && std::string(it->marker) != "ND-RANGE"
+        && std::string(it->marker) != "BARRIER") {
+      with_marker(it->marker, it->fn);
+    } else {
+      it->fn();
     }
-    else if (spmv)
-    {
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("SPMV");
-      }
-      spmv_csr_ndrange_usm(Q, n_row, block_size);
-    }
-    else if (tri)
-    {
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("TRIAD");
-      }
-      triad(Q, n_row, block_size);
-    }
-    else if (out_pro)
-    {
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("OUT-PROUCT");
-      }
-      outer_product(Q, n_row, block_size);
-    }
-    else if (cro_pro)
-    {
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("CROSS-PRODUCT");
-      }
-      cross_product(Q, n_row, block_size);
-    }
-    else if (map)
-    {
-      
-      
-      std::cout
-          << std::left << std::setw(24) << "Benchmark"
-          << std::left << std::setw(24) << "Dimension"
-          << std::left << std::setw(24) << "Min (sec)"
-          << std::left << std::setw(24) << "Max"
-          << std::left << std::setw(24) << "Median"
-          << std::left << std::setw(24) << "Mean"
-          << std::left << std::setw(24) << "std_dev"
-          << std::endl
-          << std::fixed;
-
-      if (transpose)
-      {
-        /*transpose range*/
-        range_usm_matrix_transpose(Q, n_row, 2, 3, false);
-
-        range_usm_matrix_transpose(Q, n_row, 2, iter, true);
-
-        /*transpose ndrange*/
-        ndrange_usm_matrix_transpose(Q, n_row, 2, block_size, 3, false);
-
-        ndrange_usm_matrix_transpose(Q, n_row, 2, block_size, iter, true);
-      }
-      else if (mat_add)      
-      {
-        /*dimesion 1 with range*/
-        range_usm_matrix_addition(Q, n_row, 1, 3, false);
-        
-        range_usm_matrix_addition(Q, n_row, 1, iter, true);
-
-        /*dimesion 2 with range*/
-        range_usm_matrix_addition(Q, n_row, 2, 3, false);
-
-        range_usm_matrix_addition(Q, n_row, 2, iter, true);
-
-        /*dimesion 3 with range*/
-        range_usm_matrix_addition(Q, n_row, 3, 3, false);
-
-        range_usm_matrix_addition(Q, n_row, 3, iter, true);
-
-        /*dimesion 1 with ndrange*/
-        ndrange_usm_matrix_addition(Q, n_row, 1, block_size, 3, false);
-
-        ndrange_usm_matrix_addition(Q, n_row, 1, block_size, iter, true);
-
-        /*dimesion 2 with ndrange*/
-        ndrange_usm_matrix_addition(Q, n_row, 2, block_size, 3, false);
-
-        ndrange_usm_matrix_addition(Q, n_row, 2, block_size, iter, true);
-
-        /*dimesion 3 with ndrange*/
-        ndrange_usm_matrix_addition(Q, n_row, 3, block_size, 3, false);
-
-        ndrange_usm_matrix_addition(Q, n_row, 3, block_size, iter, true);
-
-      }
-    }
-    else if(stencil_1)
-    {
-      stencil_1_ndrange_usm(Q, n_row,block_size);
-    }
-    else if (strided_gemm)
-    {
-      ndrange_usm_gemm_strided(Q, n_col, block_size, batch);
-    }
-    else if (mem_alloc)
-    {
-      std::cout
-          << std::left << std::setw(24) << "Benchmark" 
-          << std::left << std::setw(24) << "MBytes/sec"
-          << std::left << std::setw(24) << "Min (sec)" 
-          << std::left << std::setw(24) << "Max" 
-          << std::left << std::setw(24) << "Median" 
-          << std::left << std::setw(24) << "Mean"
-          << std::left << std::setw(24) << "std_dev" 
-          << std::endl
-          << std::fixed;
-
-      host_memory_alloc(Q, n_row,  block_size, false, 3);
-
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("host_memory_alloc");
-      }
-
-      host_memory_alloc(Q, n_row,  block_size, true, iter);
-
-      shared_memory_alloc(Q, n_row,  block_size,false, 3);
-
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("shared_memory_alloc");
-      }
-
-      shared_memory_alloc(Q, n_row,  block_size,true, iter);
-
-      device_memory_alloc(Q, n_row,  block_size,false, 3);
-
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("device_memory_alloc");
-      }
-
-      device_memory_alloc(Q, n_row,  block_size,true, iter);
-
-      memory_alloc(Q, n_row, block_size , false, 3);
-
-      memory_alloc(Q, n_row, block_size , true, iter);
-
-      std_memory_alloc(n_row, 3, false);
-
-      std_memory_alloc(n_row, iter, true);
-
-    }
-    else if (reduction)
-    {
-      std::cout
-          << std::left << std::setw(24) << "Benchmark"
-          << std::left << std::setw(24) << "Dimension"
-          << std::left << std::setw(24) << "Min (sec)"
-          << std::left << std::setw(24) << "Max"
-          << std::left << std::setw(24) << "Median"
-          << std::left << std::setw(24) << "Mean"
-          << std::left << std::setw(24) << "std_dev"
-          << std::endl
-          << std::fixed;
-
-      atomics_usm(Q, n_row, false, 3);
-
-      atomics_usm(Q, n_row, true, iter);
-
-      atomics_buf_acc(Q, n_row, false, 3);
-
-      atomics_buf_acc(Q, n_row, true, iter);
-
-      atomics_omp(n_row, false, 3);
-
-      atomics_omp(n_row, true, iter);
-
-      reduction_with_usm(Q, n_row,  block_size, false, 3);
-
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("reduction_usm");
-      }
-
-      reduction_with_usm(Q, n_row,  block_size, true, iter);
-
-      reduction_with_buf_acc(Q, n_row,  block_size, false, 3);
-
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("reduction_buf_acc");
-      }
-
-      reduction_with_buf_acc(Q, n_row,  block_size, true, iter);
-
-      reduction_omp(n_row, false, 3);
-
-      #pragma omp parallel
-      {
-          LIKWID_MARKER_REGISTER("reduction_omp");
-      }
-
-      reduction_omp(n_row, true, iter);
-    }
-    else if (range)
-    {
-      std::cout
-          << std::left << std::setw(24) << "Benchmark"
-          << std::left << std::setw(24) << "Dimension"
-          << std::left << std::setw(24) << "Min (sec)"
-          << std::left << std::setw(24) << "Max"
-          << std::left << std::setw(24) << "Median"
-          << std::left << std::setw(24) << "Mean"
-          << std::left << std::setw(24) << "std_dev"
-          << std::endl
-          << std::fixed;
-
-      range_with_usm(Q, n_row, 1,false, 3);
-
-      range_with_usm(Q, n_row, 1,true, iter);
-
-      range_with_usm(Q, n_row, 2,false, 3);
-
-      range_with_usm(Q, n_row, 2,true, iter);
-
-      range_with_buff_acc(Q, n_row ,1,false, 3);
-
-      range_with_buff_acc(Q, n_row ,1,true, iter);
-      
-      range_with_buff_acc(Q, n_row ,2,false, 3);
-
-      range_with_buff_acc(Q, n_row ,2,true, iter);
-
-      parallel_for_omp(n_row, false, 3);
-
-      parallel_for_omp(n_row, true, iter);
-
-      parallel_for_omp_nested(n_row, false, 3);
-
-      parallel_for_omp_nested(n_row, true, iter);
  
-      
-    }
-    else if (nd_range)
-    {
-
-      std::cout
-          << std::left << std::setw(24) << "Benchmark"
-          << std::left << std::setw(24) << "Dimension"
-          << std::left << std::setw(24) << "Min (sec)"
-          << std::left << std::setw(24) << "Max"
-          << std::left << std::setw(24) << "Median"
-          << std::left << std::setw(24) << "Mean"
-          << std::left << std::setw(24) << "std_dev"
-          << std::endl
-          << std::fixed;
-
-      nd_range_with_usm(Q, n_row, block_size ,1, false, 3);
-
-      nd_range_with_usm(Q, n_row, block_size ,1, true, iter);
-
-      nd_range_with_usm(Q, n_row, block_size ,2, false, 3);
-
-      nd_range_with_usm(Q, n_row, block_size ,2, true, iter);
-
-      nd_range_with_buff_acc(Q, n_row, block_size ,1, false, 3);
-      
-      nd_range_with_buff_acc(Q, n_row, block_size ,1, true, iter);
-
-      nd_range_with_buff_acc(Q, n_row, block_size ,2, false, 3);
-
-      nd_range_with_buff_acc(Q, n_row, block_size ,2, true, iter);
-
-      parallel_for_omp(n_row, false, 3);
-
-      parallel_for_omp(n_row, true, iter);
-
-      parallel_for_omp_nested(n_row, false, 3);
-
-      parallel_for_omp_nested(n_row, true, iter);
-    }
-    else if (barrier)
-    {
-      
-      std::cout
-          << std::left << std::setw(24) << "Benchmark"
-          << std::left << std::setw(24) << "Dimension"
-          << std::left << std::setw(24) << "Min (sec)"
-          << std::left << std::setw(24) << "Max"
-          << std::left << std::setw(24) << "Median"
-          << std::left << std::setw(24) << "Mean"
-          << std::left << std::setw(24) << "std_dev"
-          << std::endl
-          << std::fixed;
-
-      group_barrier_test_usm(Q, n_row, block_size, false, 3, 1);
-
-      group_barrier_test_usm(Q, n_row, block_size, true, iter, 1);
-
-      group_barrier_test_usm(Q, n_row, block_size, false, 3, 2);
-
-      group_barrier_test_usm(Q, n_row, block_size, true, iter, 2);
-
-      group_barrier_test_buff_acc(Q, n_row,  block_size, false, 3, 1);
-
-      group_barrier_test_buff_acc(Q, n_row,  block_size, true, iter, 1);
-
-      group_barrier_test_buff_acc(Q, n_row,  block_size, false, 3, 2);
-
-      group_barrier_test_buff_acc(Q, n_row,  block_size, true, iter, 2);
-
-      subgroup_barrier_test_usm(Q, n_row, block_size, false, 3, 1);
-
-      subgroup_barrier_test_usm(Q, n_row, block_size, true, iter, 1);
-
-      subgroup_barrier_test_usm(Q, n_row, block_size, false, 3, 2);
-
-      subgroup_barrier_test_usm(Q, n_row, block_size, true, iter, 2);
-
-      subgroup_barrier_test_buff_acc(Q, n_row, block_size, false, 3, 1);
-
-      subgroup_barrier_test_buff_acc(Q, n_row, block_size, true, iter, 1);
-
-      subgroup_barrier_test_buff_acc(Q, n_row, block_size, false, 3, 2);
-
-      subgroup_barrier_test_buff_acc(Q, n_row, block_size, true, iter, 2);
-
-      barrier_test_omp(n_row, false, 3);
-
-      barrier_test_omp(n_row, true, iter);
-
-    }
-    else if (delay)
-    {
-      delay_time(n_row);
-    } 
-    else
-    {
-      fprintf(stderr, "No input parameters specified, use --help to see how to use this binary\n"); 
-    }
-
     LIKWID_MARKER_CLOSE;
 
     return 0;
