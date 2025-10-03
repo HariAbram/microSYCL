@@ -24,6 +24,7 @@ struct Parser {
   void add_alias(const std::string& short_opt, const std::string& long_opt){
     alias[short_opt] = long_opt;
   }
+  
   void add_value_opt(const std::string& long_opt){
     takes_value.insert(long_opt);
   }
@@ -71,6 +72,7 @@ struct Parser {
   bool has(const std::string& k) const {
     return flags.count(k) || kv.count(k);
   }
+
   template <class T>
   T get(const std::string& k, T def) const {
     auto it = kv.find(k);
@@ -80,6 +82,7 @@ struct Parser {
     if (!ss.fail()) return out;
     return def;
   }
+
   std::string get(const std::string& k, const std::string& def) const {
     auto it = kv.find(k);
     return it==kv.end()? def : it->second;
